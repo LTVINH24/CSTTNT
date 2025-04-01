@@ -1,5 +1,32 @@
 """
-MazeManager class to manage the maze levels."""
+Maze Manager Module.
+
+This module provides classes and functions to manage and process maze levels for a Pacman-like game. 
+It includes functionality for loading maze levels, visualizing them, and converting them
+into a graph representation for pathfinding and AI purposes.
+
+Classes:
+    - MazePart: Enum representing different parts of the maze (e.g., walls, spaces) with associated
+      traversal costs.
+    - MazeManager: Manages maze levels, including loading level data,
+      creating visual representations, and providing access to the maze map.
+    - MazeNode: Represents a node in the maze graph, typically at corners or intersections, with 
+      connections to neighboring nodes.
+
+Key Functions:
+    - graphify_maze: Converts a 2D tilemap into a graph (list) of MazeNode objects,
+      representing the maze structure.
+    - coordinize_graph: Converts a list of MazeNode objects into
+      a dictionary keyed by their coordinates.
+
+Example:
+    ```python
+    maze_manager = MazeManager("level1.txt")
+    maze_map = maze_manager.maze_map()
+    maze_graph = graphify_maze(maze_map)
+    maze_dict = coordinize_graph(maze_graph)
+    ```
+"""
 import sys
 import os
 from enum import Enum
@@ -36,6 +63,9 @@ class MazePart(Enum):
         if char == SPACE_CHAR:
             return cls.SPACE
         raise ValueError(f"Invalid character for maze part: {char}")
+
+# Represent a cost of a tile that high enough to be considered as in-traversable
+VERY_HIGH_COST = MazePart.WALL.value
 
 class MazeManager:
     """Class to manage the maze levels."""
@@ -91,12 +121,12 @@ class MazeNode:
 
     @property
     def x(self) -> int:
-        """Get the x position."""
+        """Get the x position (column number)."""
         return self.pos[0]
 
     @property
     def y(self) -> int:
-        """Get the y position."""
+        """Get the y position (row number)."""
         return self.pos[1]
 
     def __repr__(self) -> str:
@@ -111,7 +141,6 @@ class MazeNode:
           (f", left: {self.neighbors['left']}" if self.neighbors["left"] else "") +\
           (f", right: {self.neighbors['right']}" if self.neighbors["right"] else "")
 
-VERY_HIGH_COST = MazePart.WALL.value
 def graphify_maze(
         tilemap: np.ndarray[np.uint16],
         high_cost_threshold: int = VERY_HIGH_COST // 2,
@@ -138,39 +167,16 @@ def graphify_maze(
     for y in range(tilemap.shape[0]): # y is the row index
         for x in range(tilemap.shape[1]): # x is the column index
             # Iterate through the tilemap from left to right, then top to bottom
-            if tilemap[y, x] >= high_cost_threshold:
-                horizontal_weight = VERY_HIGH_COST
-                vertical_weights[x] = VERY_HIGH_COST
-                # Skip walls
-                continue
-
-            left = x > 0 and tilemap[y, x - 1] < high_cost_threshold
-            right = x < tilemap.shape[1] - 1 and tilemap[y, x + 1] < high_cost_threshold
-            up = y > 0 and tilemap[y - 1, x] < high_cost_threshold
-            down = y < tilemap.shape[0] - 1 and tilemap[y + 1, x] < high_cost_threshold
-
-            # Check if the node is a corner or intersection
-            if all((not up, not down, not left, not right)):
-                # Skip "isolated" nodes
-                continue
-
-            is_straight_horizontally = all((left, right, not up, not down))
-            is_straight_vertically = all((up, down, not left, not right))
-            if is_straight_horizontally:
-                horizontal_weight += tilemap[y, x]
-                continue # Skip "straight" nodes
-            if is_straight_vertically:
-                vertical_weights[x] += tilemap[y, x]
-                continue # Skip "straight" nodes
-
-            new_node = MazeNode((x, y))
-            if left or right:
-                horizontal_nodes[y].append((horizontal_weight, new_node))
-                horizontal_weight = tilemap[y, x]
-            if up or down:
-                vertical_nodes[x].append((vertical_weights[x], new_node))
-                vertical_weights[x] = tilemap[y, x]
-            maze_nodes.append(new_node)
+            _process_tile(
+                tilemap,
+                x, y,
+                high_cost_threshold,
+                horizontal_nodes,
+                vertical_nodes,
+                maze_nodes,
+                horizontal_weight,
+                vertical_weights
+            )
 
     if tracing:
         print("----Horizontal Nodes-------")
@@ -181,20 +187,7 @@ def graphify_maze(
             print(f"Col {y}: {[node[1].directed_repr() for node in nodes]}")    
 
     # Connect the nodes
-    for x, nodes in horizontal_nodes.items():
-        for i in range(len(nodes) - 1):
-            _, left_node = nodes[i]
-            horizontal_path_weight, right_node = nodes[i + 1]
-            if horizontal_path_weight < high_cost_threshold:
-                left_node.neighbors["right"] = (right_node, horizontal_path_weight)
-                right_node.neighbors["left"] = (left_node, horizontal_path_weight)
-    for y, nodes in vertical_nodes.items():
-        for i in range(len(nodes) - 1):
-            _, upper_node = nodes[i]
-            vertical_path_weight, lower_node = nodes[i + 1]
-            if vertical_path_weight < high_cost_threshold:
-                upper_node.neighbors["down"] = (lower_node, vertical_path_weight)
-                lower_node.neighbors["up"] = (upper_node, vertical_path_weight)
+    _connect_nodes(horizontal_nodes, vertical_nodes, high_cost_threshold)
 
     if tracing:
         print("----Maze Nodes-------")
@@ -211,6 +204,126 @@ def coordinize_graph(maze_nodes: list[MazeNode]) -> dict[tuple[int, int], MazeNo
     for node in sorted(maze_nodes, key=lambda n: (n.x, n.y)):
         maze_dict[node.pos] = node
     return maze_dict
+
+# pylint: disable=too-many-arguments, too-many-positional-arguments
+def _process_tile(
+# pylint: enable=too-many-arguments, too-many-positional-arguments
+        tilemap: np.ndarray[np.uint16],
+        x: int, y: int,
+        high_cost_threshold: int,
+        horizontal_nodes: dict[int, list[tuple[int, MazeNode]]],
+        vertical_nodes: dict[int, list[tuple[int, MazeNode]]],
+        maze_nodes: list[MazeNode],
+        horizontal_weight: int,
+        vertical_weights: list[int],
+        ) -> None:
+    """
+    Process a single tile in the tilemap to determine its role in the maze structure.
+    This function evaluates a tile in the maze and determines whether it should be 
+    treated as a wall, a straight path, or a node in the maze graph. It updates the 
+    weights and connections for horizontal and vertical paths and creates new maze 
+    nodes when necessary.
+    Parameters:
+        tilemap (numpy.ndarray): A 2D array representing the maze, where each value 
+                                  indicates the cost of traversing the tile.
+        x (int): The x-coordinate (column number) of the tile being processed.
+        y (int): The y-coordinate (row number) of the tile being processed.
+        high_cost_threshold (int): The cost threshold above which a tile is considered 
+                                    a wall and not traversable.
+        horizontal_nodes (dict): A dictionary mapping row indices to lists of tuples, 
+                                  where each tuple contains the weight of a horizontal 
+                                  edge and the connected MazeNode
+                                  (the edge should be to the right of the node, if exists).
+        vertical_nodes (dict): A dictionary mapping column indices to lists of tuples, 
+                                where each tuple contains the weight of a vertical edge 
+                                and the connected MazeNode
+                                (the edge should be above the node if any, if exists).
+        maze_nodes (list): A list to store all MazeNode objects created during processing (so far).
+        horizontal_weight (int): The cumulative weight of the current horizontal path 
+                                  being processed.
+        vertical_weights (list): A list of cumulative weights for vertical paths, 
+                                  indexed by column.
+    Returns:
+        None: The function modifies the provided data structures in place.
+    """
+    # The tilemap has a high cost enough to be considered as in-traversable
+    # (e.g. a wall)
+    if tilemap[y, x] >= high_cost_threshold:
+        horizontal_weight = VERY_HIGH_COST
+        vertical_weights[x] = VERY_HIGH_COST
+        return  # Skip walls
+
+    # Those booleans are used to check if there are any directly adjacent tiles
+    # that is considered traversable (i.e. not a wall)
+    left = x > 0 and tilemap[y, x - 1] < high_cost_threshold
+    right = x < tilemap.shape[1] - 1 and tilemap[y, x + 1] < high_cost_threshold
+    up = y > 0 and tilemap[y - 1, x] < high_cost_threshold
+    down = y < tilemap.shape[0] - 1 and tilemap[y + 1, x] < high_cost_threshold
+
+    # Skip "isolated" nodes
+    if all((not up, not down, not left, not right)):
+        return
+
+    # Skip "straight" nodes
+    if all((left, right, not up, not down)): # Horizontal straight path
+        horizontal_weight += tilemap[y, x]
+        return
+    if all((up, down, not left, not right)): # Vertical straight path
+        vertical_weights[x] += tilemap[y, x]
+        return
+
+    new_node = MazeNode((x, y))
+    if left or right:
+        horizontal_nodes[y].append((horizontal_weight, new_node))
+        horizontal_weight = tilemap[y, x]
+    if up or down:
+        vertical_nodes[x].append((vertical_weights[x], new_node))
+        vertical_weights[x] = tilemap[y, x]
+    maze_nodes.append(new_node)
+
+def _connect_nodes(
+        horizontal_nodes: dict[int, list[tuple[int, MazeNode]]],
+        vertical_nodes: dict[int, list[tuple[int, MazeNode]]],
+        high_cost_threshold: int = VERY_HIGH_COST // 2
+        ):
+    """
+    Connects nodes in a maze both horizontally and vertically based on path weights.
+
+    This function establishes bidirectional connections between nodes in a maze
+    by linking them horizontally and vertically. Connections are only created
+    if the path weight between two nodes is below a specified high-cost threshold.
+
+    Args:
+        horizontal_nodes (dict): A dictionary where keys are y-coordinates (row number) and values
+            are lists of tuples. Each tuple contains the path weight (to the left of the node)
+            and the node at that position along the horizontal axis.
+        vertical_nodes (dict): A dictionary where keys are x-coordinates (column number) and values
+            are lists of tuples. Each tuple contains the path weight (above the node) and the node
+            at that position along the vertical axis.
+        high_cost_threshold (int): The maximum allowable path weight for two nodes
+            to be considered traversible.
+
+    Notes:
+        - Each node is expected to have a `neighbors` attribute, which is a dictionary
+          mapping directions ("right", "left", "down", "up") to tuples containing
+          the neighboring node and the path weight.
+        - Connections are bidirectional, meaning if node A is connected to node B,
+          then node B is also connected to node A.
+    """
+    for _, nodes in horizontal_nodes.items():
+        for i in range(len(nodes) - 1):
+            _, left_node = nodes[i]
+            horizontal_path_weight, right_node = nodes[i + 1]
+            if horizontal_path_weight < high_cost_threshold:
+                left_node.neighbors["right"] = (right_node, horizontal_path_weight)
+                right_node.neighbors["left"] = (left_node, horizontal_path_weight)
+    for _, nodes in vertical_nodes.items():
+        for i in range(len(nodes) - 1):
+            _, upper_node = nodes[i]
+            vertical_path_weight, lower_node = nodes[i + 1]
+            if vertical_path_weight < high_cost_threshold:
+                upper_node.neighbors["down"] = (lower_node, vertical_path_weight)
+                lower_node.neighbors["up"] = (upper_node, vertical_path_weight)
 
 LEVEL = 2
 if __name__ == "__main__":
