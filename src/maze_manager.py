@@ -131,15 +131,37 @@ class MazeNode:
 
     def __repr__(self) -> str:
         """Get the string representation of the node."""
-        return f"({self.pos[0]}, {self.pos[1]})"
+        return f"N({int(self.pos[0]):2}, {int(self.pos[1]):2})"
 
     def directed_repr(self) -> str:
         """Get the string representation of the node with directions."""
-        return f"MazeNode({self.pos[0]}, {self.pos[1]})" +\
-          (f", up: {self.neighbors['up']}" if self.neighbors["up"] else "") +\
-          (f", down: {self.neighbors['down']}" if self.neighbors["down"] else "") +\
-          (f", left: {self.neighbors['left']}" if self.neighbors["left"] else "") +\
-          (f", right: {self.neighbors['right']}" if self.neighbors["right"] else "")
+        def _format_neighbor(neighbor: tuple[Self, int] | None, icon: str) -> str:
+            """Format the neighbor for printing."""
+            if neighbor is None:
+                return ""
+            node, cost = neighbor
+            direction_colors = {
+                "↑": "\033[94m",  # Blue for up
+                "↓": "\033[93m",  # Yellow for down
+                "←": "\033[96m",  # Cyan for left
+                "→": "\033[95m"   # Magenta for right
+            }
+            # Default to green if icon not found
+            color_start = direction_colors.get(icon, "\033[92m")
+            color_end = "\033[0m"  # Reset color
+            return f",  {color_start}{icon}( {node}" +\
+              f", cost={int(cost):2} ){color_end}"
+        return f"MazeNode( pos({self.pos[0]:2}, {self.pos[1]:2})" +\
+               _format_neighbor(self.neighbors["up"], "↑") +\
+               _format_neighbor(self.neighbors["down"], "↓") +\
+               _format_neighbor(self.neighbors["left"], "←") +\
+               _format_neighbor(self.neighbors["right"], "→") + ")"
+
+        # return f"MazeNode(( pos: ({self.pos[0]}, {self.pos[1]})" +\
+        #   (f", up: {self.neighbors['up']}" if self.neighbors["up"] else "") +\
+        #   (f", down: {self.neighbors['down']}" if self.neighbors["down"] else "") +\
+        #   (f", left: {self.neighbors['left']}" if self.neighbors["left"] else "") +\
+        #   (f", right: {self.neighbors['right']}" if self.neighbors["right"] else "") + " )"
 
 def graphify_maze(
         tilemap: np.ndarray[np.uint16],
@@ -158,7 +180,7 @@ def graphify_maze(
     horizontal_nodes = { y: [] for y in range(tilemap.shape[0]) } # { row_index: node_in_each_col }
     vertical_nodes = { x: [] for x in range(tilemap.shape[1]) } # { col_index: node_in_each_row }
 
-    horizontal_weight: int = VERY_HIGH_COST # Weight of the path to the left of the node
+    horizontal_weight = [VERY_HIGH_COST]  # Use a list to hold the weight as a reference
     # Weight of the path above the node
     vertical_weights = { j: VERY_HIGH_COST for j in range(tilemap.shape[1]) }
 
@@ -179,12 +201,20 @@ def graphify_maze(
             )
 
     if tracing:
+        def _nodes_info(nodes: list[tuple[int, MazeNode]]) -> None:
+            """Print the nodes in a formatted way."""
+            result = []
+            for weight, node in nodes:
+                result.append(f"({(
+                    int(weight) if int(weight) < high_cost_threshold else "--"
+                    ):2}, {node})")
+            return ", ".join(result)
         print("----Horizontal Nodes-------")
         for x, nodes in horizontal_nodes.items():
-            print(f"Row {x}: {[node[1].directed_repr() for node in nodes]}")
+            print(f"Row {x}: {_nodes_info(nodes)}")
         print("----Vertical Nodes-------")
         for y, nodes in vertical_nodes.items():
-            print(f"Col {y}: {[node[1].directed_repr() for node in nodes]}")    
+            print(f"Col {y}: {_nodes_info(nodes)}")
 
     # Connect the nodes
     _connect_nodes(horizontal_nodes, vertical_nodes, high_cost_threshold)
@@ -214,42 +244,46 @@ def _process_tile(
         horizontal_nodes: dict[int, list[tuple[int, MazeNode]]],
         vertical_nodes: dict[int, list[tuple[int, MazeNode]]],
         maze_nodes: list[MazeNode],
-        horizontal_weight: int,
+        horizontal_weight: list[int],
         vertical_weights: list[int],
         ) -> None:
     """
     Process a single tile in the tilemap to determine its role in the maze structure.
+
     This function evaluates a tile in the maze and determines whether it should be 
     treated as a wall, a straight path, or a node in the maze graph. It updates the 
     weights and connections for horizontal and vertical paths and creates new maze 
     nodes when necessary.
-    Parameters:
+
+    Args:
         tilemap (numpy.ndarray): A 2D array representing the maze, where each value 
-                                  indicates the cost of traversing the tile.
+            indicates the cost of traversing the tile.
         x (int): The x-coordinate (column number) of the tile being processed.
         y (int): The y-coordinate (row number) of the tile being processed.
         high_cost_threshold (int): The cost threshold above which a tile is considered 
-                                    a wall and not traversable.
-        horizontal_nodes (dict): A dictionary mapping row indices to lists of tuples, 
-                                  where each tuple contains the weight of a horizontal 
-                                  edge and the connected MazeNode
-                                  (the edge should be to the right of the node, if exists).
-        vertical_nodes (dict): A dictionary mapping column indices to lists of tuples, 
-                                where each tuple contains the weight of a vertical edge 
-                                and the connected MazeNode
-                                (the edge should be above the node if any, if exists).
-        maze_nodes (list): A list to store all MazeNode objects created during processing (so far).
-        horizontal_weight (int): The cumulative weight of the current horizontal path 
-                                  being processed.
-        vertical_weights (list): A list of cumulative weights for vertical paths, 
-                                  indexed by column.
+            a wall and not traversable.
+        horizontal_nodes (dict[int, list[tuple[int, MazeNode]]]): A dictionary mapping 
+            row indices to lists of tuples, where each tuple contains the weight of a 
+            horizontal edge and the connected MazeNode. The edge should be to the right 
+            of the node, if it exists.
+        vertical_nodes (dict[int, list[tuple[int, MazeNode]]]): A dictionary mapping 
+            column indices to lists of tuples, where each tuple contains the weight of 
+            a vertical edge and the connected MazeNode. The edge should be above the 
+            node, if it exists.
+        maze_nodes (list[MazeNode]): A list to store all MazeNode objects created during 
+            processing so far.
+        horizontal_weight (list[int]): A single-element list holding the cumulative weight 
+            of the current horizontal path being processed.
+        vertical_weights (list[int]): A list of cumulative weights for vertical paths, 
+            indexed by column.
+
     Returns:
         None: The function modifies the provided data structures in place.
     """
     # The tilemap has a high cost enough to be considered as in-traversable
     # (e.g. a wall)
     if tilemap[y, x] >= high_cost_threshold:
-        horizontal_weight = VERY_HIGH_COST
+        horizontal_weight[0] = VERY_HIGH_COST
         vertical_weights[x] = VERY_HIGH_COST
         return  # Skip walls
 
@@ -266,7 +300,7 @@ def _process_tile(
 
     # Skip "straight" nodes
     if all((left, right, not up, not down)): # Horizontal straight path
-        horizontal_weight += tilemap[y, x]
+        horizontal_weight[0] += tilemap[y, x]
         return
     if all((up, down, not left, not right)): # Vertical straight path
         vertical_weights[x] += tilemap[y, x]
@@ -274,8 +308,8 @@ def _process_tile(
 
     new_node = MazeNode((x, y))
     if left or right:
-        horizontal_nodes[y].append((horizontal_weight, new_node))
-        horizontal_weight = tilemap[y, x]
+        horizontal_nodes[y].append((horizontal_weight[0], new_node))
+        horizontal_weight[0] = tilemap[y, x]
     if up or down:
         vertical_nodes[x].append((vertical_weights[x], new_node))
         vertical_weights[x] = tilemap[y, x]
@@ -325,7 +359,35 @@ def _connect_nodes(
                 upper_node.neighbors["down"] = (lower_node, vertical_path_weight)
                 lower_node.neighbors["up"] = (upper_node, vertical_path_weight)
 
-LEVEL = 2
+def is_coord_in_path(
+        maze_map: np.ndarray[np.uint16],
+        maze_dict: dict[tuple[int, int], MazeNode],
+        coord: tuple[int, int]
+        ) -> bool:
+    """
+    Determines if a given coordinate is part of a path in the maze.
+
+    A coordinate is considered part of a path if it is **not a node** and traversable
+    (i.e., not a wall).
+            
+    Check if a coordinate falls within a path in the maze, including straight lines.
+
+    Args:
+        maze_map (np.ndarray[np.uint16]): A 2D numpy array representing the maze,
+            where each cell contains a cost value.
+        maze_dict (dict[tuple[int, int], MazeNode]): A dictionary mapping coordinates
+            (x, y) to MazeNode objects, representing nodes in the maze.
+        coord (tuple[int, int]): The coordinate to check, represented as a tuple (x, y).
+
+    Returns:
+        bool: True if the coordinate is part of a path, False otherwise.
+    """
+    if (maze_map[coord[1], coord[0]] < VERY_HIGH_COST and
+        maze_dict.get(coord) is None):
+        return True
+    return False
+
+LEVEL = 1
 if __name__ == "__main__":
     # pylint: disable=no-member
     pg.init()
@@ -341,10 +403,17 @@ if __name__ == "__main__":
     print("---Maze Dictionary---")
     for _y in range(maze_manager.level_data.shape[0]):
         for _x in range(maze_manager.level_data.shape[1]):
-            if (_x, _y) in _maze_dict:
-                print(f"{_maze_dict[(_x, _y)]}", end="")
-            else:
-                print("(-, -)", end="")
+            def _coord(_x: int, _y: int) -> str:
+                """Print the coordinates with color coding based on node connections."""
+                if (_x, _y) in _maze_dict:
+                    # Yellow for nodes
+                    return f"\033[93m({_x:2},{_y:2})\033[0m"
+                if is_coord_in_path(maze_manager.level_data, _maze_dict, (_x, _y)):
+                    # Green for paths
+                    return f"\033[92m({_x:2},{_y:2})\033[0m"
+                # Default for non-nodes
+                return "(--,--)"
+            print(_coord(_x, _y), end="")
         print()
 
     maze = maze_manager.make_maze()
