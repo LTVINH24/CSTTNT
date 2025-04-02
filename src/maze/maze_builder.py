@@ -1,37 +1,24 @@
 """
-Maze Manager Module.
+Maze Builder Module.
 
-This module provides classes and functions to manage and process maze levels for a Pacman-like game.
+This module provides classes and functions to process and build maze levels for a Pacman-like game.
 It includes functionality for loading maze levels, visualizing them, and converting them
 into a graph representation for pathfinding and AI purposes.
 
 Classes:
-    - MazePart: Enum representing different parts of the maze (e.g., walls, spaces) with associated
-      traversal costs.
-    - MazeManager: Manages maze levels, including loading level data,
-      creating visual representations, and providing access to the maze map.
-    - MazeNode: Represents a node in the maze graph, typically at corners or intersections, with
-      connections to neighboring nodes.
-
-Key Functions:
-    - graphify_maze: Converts a 2D tilemap into a graph (list) of MazeNode objects,
-      representing the maze structure.
-    - coordinize_graph: Converts a list of MazeNode objects into
-      a dictionary keyed by their coordinates.
+    MazeBuilder: Manages maze levels, including loading level data,
+        creating visual representations, and providing access to the maze map.
 
 Example:
     ```python
-    maze_manager = MazeManager("level1.txt")
-    maze_map = maze_manager.maze_map()
-    maze_graph = graphify_maze(maze_map)
-    maze_dict = coordinize_graph(maze_graph)
+    maze_builder = MazeBuilder("level1.txt")
+    maze_grid = maze_builder.maze_grid
+    maze_graph = maze_builder.maze_graph
+    maze_dict = maze_builder.maze_dict
     ```
 """
 import sys
 import os
-from enum import Enum
-from typing import Self
-from dataclasses import dataclass, field
 
 import pygame as pg
 # pylint: disable=no-name-in-module
@@ -39,52 +26,55 @@ from pygame.locals import QUIT
 # pylint: enable=no-name-in-module
 import numpy as np
 
-from src.maze import MazeCoord
-from .constant import BASE_PATH, TILE_SIZE
-
+from src.constant import BASE_PATH, TILE_SIZE
+from .maze_coord import MazeCoord
+from .maze_node import MazeNode, MazeDirection
+from .maze_parts import MazePart
 
 LEVELS_PATH = os.path.join(BASE_PATH, "assets", "levels")
-WALL_CHAR = "="
-SPACE_CHAR = "."
 
 WALL_COLOR = (64, 64, 64)  # Dark gray
 SPACE_COLOR = (192, 192, 192)  # Gray
 
-class MazePart(Enum):
-    """Enum for maze parts. Its value represents the cost to move through the part."""
-    # Arbitrary high cost for walls, enough for `np.uint16`.
-    # This value should be the minimum value that represents an in-traversable cost.
-    WALL = 10000
-    SPACE = 1
-
-    @classmethod
-    def from_char(cls, char: str) -> Self:
-        """Convert a character to a MazePart."""
-        if char == WALL_CHAR:
-            return cls.WALL
-        if char == SPACE_CHAR:
-            return cls.SPACE
-        raise ValueError(f"Invalid character for maze part: {char}")
-
 # Represent a cost of a tile that high enough to be considered as in-traversable
 VERY_HIGH_COST = MazePart.WALL.value
 
-class MazeManager:
-    """Class to manage the maze levels."""
+class MazeBuilder:
+    """
+    Class to load and process the maze levels.
+
+    This class handles loading maze levels from files, creating visual representations
+    of the maze, and converting the maze into graph structures for pathfinding.
+
+    Attributes:
+        maze_grid (np.ndarray[np.uint16]): A 2D numpy array representing the maze grid.
+        maze_graph (list[MazeNode]): A list of MazeNode objects representing the maze graph.
+        maze_dict (dict[MazeCoord, MazeNode]): A dictionary mapping coordinates to MazeNode objects.
+
+    Methods:
+        maze_surface() -> pg.Surface:
+            Creates a Pygame surface representing the maze for rendering.
+    """
     def __init__(self, level_file_name: str):
-        """Initialize the MazeManager with a level file name."""
+        """
+        Initialize the MazeBuilder with a level specified in a file.
+
+        Args:
+            level_file_name (str): The name of the level file to load.
+        """
         level_file_path = os.path.join(LEVELS_PATH, level_file_name)
 
         # Generate the level data from the file
-        self.level_data = []
+        _level_data = []
         with open(level_file_path, "r", encoding="utf-8") as level_file:
             for line in level_file:
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
                 current_row = [MazePart.from_char(char).value for char in line]
-                self.level_data.append(current_row)
-        self.level_data = np.array(self.level_data, dtype=np.uint16)
+                _level_data.append(current_row)
+        _level_data = np.array(_level_data, dtype=np.uint16)
+        self._maze_grid = _level_data
 
         # Generate the images for the maze parts
         wall_image = pg.Surface((TILE_SIZE, TILE_SIZE)).convert()
@@ -96,94 +86,100 @@ class MazeManager:
             MazePart.SPACE: space_image
         }
 
-    def maze_map(self) -> np.ndarray[np.uint16]:
-        """Get the maze map as a numpy array."""
-        return self.level_data
+        self._maze_graph: list[MazeNode] = graphify_maze(_level_data)
+        self._maze_dict: dict[MazeCoord, MazeNode] = coordinize_graph(self._maze_graph)
 
-    def make_maze(self) -> pg.Surface:
-        """Create a maze surface from the level data."""
+    @property
+    def maze_grid(self) -> np.ndarray[np.uint16]:
+        """
+        Get the maze map as a numpy array.
+
+        Returns:
+            np.ndarray[np.uint16]: A 2D numpy array where each cell represents
+            the cost of traversing that part of the maze.
+        """
+        return self._maze_grid
+
+    @property
+    def maze_graph(self) -> list[MazeNode]:
+        """
+        Get the maze graph as a list of MazeNode.
+
+        The maze graph is a representation of the maze as a graph structure,
+        where each node corresponds to a significant point in the maze
+        (e.g., intersections, corners, or dead ends). Each node is connected
+        to its neighbors with edges that have weights representing the cost
+        of traversing between them.
+
+        Returns:
+            list[MazeNode]: A list of MazeNode objects representing the graph
+            structure of the maze.
+        """
+        return self._maze_graph
+
+    @property
+    def maze_dict(self) -> dict[MazeCoord, MazeNode]:
+        """
+        Get the maze graph as a dictionary of MazeNode.
+
+        The maze dictionary maps coordinates (MazeCoord) to their corresponding
+        MazeNode objects. This allows for quick lookup of nodes based on their
+        positions in the maze.
+
+        Returns:
+            dict[MazeCoord, MazeNode]: A dictionary where keys are MazeCoord objects
+            (or tuples representing coordinates) and values are MazeNode objects.
+        """
+        return self._maze_dict
+
+    def maze_surface(self) -> pg.Surface:
+        """
+        Create a maze surface from the level data.
+        
+        Generate a Pygame surface representing the maze based on the level data.
+        This method creates a Pygame surface object with dimensions proportional 
+        to the maze grid and tile size. It iterates through the maze grid, 
+        retrieves the corresponding image for each maze part, and blits (draws) 
+        it onto the surface at the appropriate position.
+        Returns:
+            pg.Surface: A Pygame surface object containing the visual representation 
+            of the maze, where each tile corresponds to a part of the maze grid.
+        """
         maze_surface = pg.Surface(
-            (self.level_data.shape[1] * TILE_SIZE, self.level_data.shape[0] * TILE_SIZE)
+            (self._maze_grid.shape[1] * TILE_SIZE, self._maze_grid.shape[0] * TILE_SIZE)
         ).convert()
-        for y, row in enumerate(self.level_data):
+        for y, row in enumerate(self._maze_grid):
             for x, part in enumerate(row):
                 maze_surface.blit(self.part_images[MazePart(part)], (x * TILE_SIZE, y * TILE_SIZE))
         return maze_surface
 
-class MazeDirection(Enum):
-    """Enum for maze directions."""
-    UP = "up"
-    DOWN = "down"
-    LEFT = "left"
-    RIGHT = "right"
+def is_coord_in_path(
+        maze_map: np.ndarray[np.uint16],
+        maze_dict: dict[MazeCoord, MazeNode],
+        coord: MazeCoord | tuple[int, int]
+        ) -> bool:
+    """
+    Determines if a given coordinate is part of a path in the maze.
 
-    def __str__(self) -> str:
-        """Get the string representation of the direction."""
-        return self.value
+    A coordinate is considered part of a path if it is **not a node** and traversable
+    (i.e., not a wall).
 
-    def direction_vector(self) -> tuple[int, int]:
-        """Get the vector representation of the direction."""
-        match self:
-            case MazeDirection.UP:
-                return (0, -1)
-            case MazeDirection.DOWN:
-                return (0, 1)
-            case MazeDirection.LEFT:
-                return (-1, 0)
-            case MazeDirection.RIGHT:
-                return (1, 0)
-            # Default case, should not happen
-            case _:
-                return (0, 0)
+    Check if a coordinate falls within a path in the maze, including straight lines.
 
-@dataclass
-class MazeNode:
-    """Represent a corner or intersection in the maze."""
-    pos: MazeCoord = field(default_factory=lambda: MazeCoord(0, 0))
-    neighbors: dict[MazeDirection, tuple[Self, int] | None] = field(default_factory=lambda: {
-        MazeDirection.UP: None,
-        MazeDirection.DOWN: None,
-        MazeDirection.LEFT: None,
-        MazeDirection.RIGHT: None
-    })
+    Args:
+        maze_map (np.ndarray[np.uint16]): A 2D numpy array representing the maze,
+            where each cell contains a cost value.
+        maze_dict (dict[MazeCoord, MazeNode]): A dictionary mapping coordinates
+            (x, y) to MazeNode objects, representing nodes in the maze.
+        coord (MazeCoord | tuple[int, int]): The coordinate to check, represented as a tuple (x, y).
 
-    @property
-    def x(self) -> int:
-        """Get the x position (column number)."""
-        return self.pos[0]
-
-    @property
-    def y(self) -> int:
-        """Get the y position (row number)."""
-        return self.pos[1]
-
-    def __repr__(self) -> str:
-        """Get the string representation of the node."""
-        return f"N({int(self.pos[0]):2}, {int(self.pos[1]):2})"
-
-    def directed_repr(self) -> str:
-        """Get the string representation of the node with directions."""
-        def _format_neighbor(neighbor: tuple[Self, int] | None, icon: str) -> str:
-            """Format the neighbor for printing."""
-            if neighbor is None:
-                return ""
-            node, cost = neighbor
-            direction_colors = {
-                "↑": "\033[94m",  # Blue for up
-                "↓": "\033[93m",  # Yellow for down
-                "←": "\033[96m",  # Cyan for left
-                "→": "\033[95m"   # Magenta for right
-            }
-            # Default to green if icon not found
-            color_start = direction_colors.get(icon, "\033[92m")
-            color_end = "\033[0m"  # Reset color
-            return f",  {color_start}{icon}( {node}" +\
-              f", cost={int(cost):2} ){color_end}"
-        return f"MazeNode( pos({self.pos[0]:2}, {self.pos[1]:2})" +\
-               _format_neighbor(self.neighbors[MazeDirection.UP], "↑") +\
-               _format_neighbor(self.neighbors[MazeDirection.DOWN], "↓") +\
-               _format_neighbor(self.neighbors[MazeDirection.LEFT], "←") +\
-               _format_neighbor(self.neighbors[MazeDirection.RIGHT], "→") + ")"
+    Returns:
+        bool: True if the coordinate is part of a path, False otherwise.
+    """
+    if (maze_map[coord[1], coord[0]] < VERY_HIGH_COST and
+        maze_dict.get(coord) is None):
+        return True
+    return False
 
 def graphify_maze(
         tilemap: np.ndarray[np.uint16],
@@ -382,56 +378,28 @@ def _connect_nodes(
                 upper_node.neighbors[MazeDirection.DOWN] = (lower_node, vertical_path_weight)
                 lower_node.neighbors[MazeDirection.UP] = (upper_node, vertical_path_weight)
 
-def is_coord_in_path(
-        maze_map: np.ndarray[np.uint16],
-        maze_dict: dict[MazeCoord, MazeNode],
-        coord: MazeCoord | tuple[int, int]
-        ) -> bool:
-    """
-    Determines if a given coordinate is part of a path in the maze.
-
-    A coordinate is considered part of a path if it is **not a node** and traversable
-    (i.e., not a wall).
-
-    Check if a coordinate falls within a path in the maze, including straight lines.
-
-    Args:
-        maze_map (np.ndarray[np.uint16]): A 2D numpy array representing the maze,
-            where each cell contains a cost value.
-        maze_dict (dict[MazeCoord, MazeNode]): A dictionary mapping coordinates
-            (x, y) to MazeNode objects, representing nodes in the maze.
-        coord (MazeCoord | tuple[int, int]): The coordinate to check, represented as a tuple (x, y).
-
-    Returns:
-        bool: True if the coordinate is part of a path, False otherwise.
-    """
-    if (maze_map[coord[1], coord[0]] < VERY_HIGH_COST and
-        maze_dict.get(coord) is None):
-        return True
-    return False
-
 LEVEL = 1
 if __name__ == "__main__":
     # pylint: disable=no-member
     pg.init()
     # pylint: enable=no-member
     pg.display.set_mode((800, 600))
-    pg.display.set_caption("Maze Manager Test")
+    pg.display.set_caption("Maze Builder Test")
 
-    maze_manager = MazeManager(f"level{LEVEL}.txt")
-    print(maze_manager.maze_map())
-    maze_graph = graphify_maze(maze_manager.level_data, tracing=True)
+    maze_builder = MazeBuilder(f"level{LEVEL}.txt")
+    print(maze_builder.maze_grid)
+    maze_graph = graphify_maze(maze_builder.maze_grid, tracing=True)
 
     _maze_dict = coordinize_graph(maze_graph)
     print("---Maze Dictionary---")
-    for _y in range(maze_manager.level_data.shape[0]):
-        for _x in range(maze_manager.level_data.shape[1]):
+    for _y in range(maze_builder.maze_grid.shape[0]):
+        for _x in range(maze_builder.maze_grid.shape[1]):
             def _coord(_x: int, _y: int) -> str:
                 """Print the coordinates with color coding based on node connections."""
                 if (_x, _y) in _maze_dict:
                     # Yellow for nodes
                     return f"\033[93m({_x:2},{_y:2})\033[0m"
-                if is_coord_in_path(maze_manager.level_data, _maze_dict, (_x, _y)):
+                if is_coord_in_path(maze_builder.maze_grid, _maze_dict, (_x, _y)):
                     # Green for paths
                     return f"\033[92m({_x:2},{_y:2})\033[0m"
                 # Default for non-nodes
@@ -439,7 +407,7 @@ if __name__ == "__main__":
             print(_coord(_x, _y), end="")
         print()
 
-    maze = maze_manager.make_maze()
+    maze = maze_builder.maze_surface()
     screen = pg.display.get_surface()
 
     # Center the maze on the screen

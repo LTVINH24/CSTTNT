@@ -5,7 +5,7 @@ import pygame as pg
 import numpy as np
 
 from src.constant import TILE_SIZE, SNAP_THRESHOLD
-from src.maze_manager import MazeNode
+from src.maze.maze_builder import MazeNode
 from .maze_coord import MazeCoord
 
 def rect_to_maze_coords(rect_center: tuple[int, int]) -> MazeCoord:
