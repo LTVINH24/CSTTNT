@@ -1,7 +1,7 @@
 """
 Maze Manager Module.
 
-This module provides classes and functions to manage and process maze levels for a Pacman-like game. 
+This module provides classes and functions to manage and process maze levels for a Pacman-like game.
 It includes functionality for loading maze levels, visualizing them, and converting them
 into a graph representation for pathfinding and AI purposes.
 
@@ -10,7 +10,7 @@ Classes:
       traversal costs.
     - MazeManager: Manages maze levels, including loading level data,
       creating visual representations, and providing access to the maze map.
-    - MazeNode: Represents a node in the maze graph, typically at corners or intersections, with 
+    - MazeNode: Represents a node in the maze graph, typically at corners or intersections, with
       connections to neighboring nodes.
 
 Key Functions:
@@ -39,7 +39,9 @@ from pygame.locals import QUIT
 # pylint: enable=no-name-in-module
 import numpy as np
 
+from src.maze import MazeCoord
 from .constant import BASE_PATH, TILE_SIZE
+
 
 LEVELS_PATH = os.path.join(BASE_PATH, "assets", "levels")
 WALL_CHAR = "="
@@ -108,15 +110,41 @@ class MazeManager:
                 maze_surface.blit(self.part_images[MazePart(part)], (x * TILE_SIZE, y * TILE_SIZE))
         return maze_surface
 
+class MazeDirection(Enum):
+    """Enum for maze directions."""
+    UP = "up"
+    DOWN = "down"
+    LEFT = "left"
+    RIGHT = "right"
+
+    def __str__(self) -> str:
+        """Get the string representation of the direction."""
+        return self.value
+
+    def direction_vector(self) -> tuple[int, int]:
+        """Get the vector representation of the direction."""
+        match self:
+            case MazeDirection.UP:
+                return (0, -1)
+            case MazeDirection.DOWN:
+                return (0, 1)
+            case MazeDirection.LEFT:
+                return (-1, 0)
+            case MazeDirection.RIGHT:
+                return (1, 0)
+            # Default case, should not happen
+            case _:
+                return (0, 0)
+
 @dataclass
 class MazeNode:
     """Represent a corner or intersection in the maze."""
-    pos: tuple[int, int]
-    neighbors: dict[str, tuple[Self, int] | None] = field(default_factory=lambda: {
-        "up": None,
-        "down": None,
-        "left": None,
-        "right": None
+    pos: MazeCoord = field(default_factory=lambda: MazeCoord(0, 0))
+    neighbors: dict[MazeDirection, tuple[Self, int] | None] = field(default_factory=lambda: {
+        MazeDirection.UP: None,
+        MazeDirection.DOWN: None,
+        MazeDirection.LEFT: None,
+        MazeDirection.RIGHT: None
     })
 
     @property
@@ -152,16 +180,10 @@ class MazeNode:
             return f",  {color_start}{icon}( {node}" +\
               f", cost={int(cost):2} ){color_end}"
         return f"MazeNode( pos({self.pos[0]:2}, {self.pos[1]:2})" +\
-               _format_neighbor(self.neighbors["up"], "↑") +\
-               _format_neighbor(self.neighbors["down"], "↓") +\
-               _format_neighbor(self.neighbors["left"], "←") +\
-               _format_neighbor(self.neighbors["right"], "→") + ")"
-
-        # return f"MazeNode(( pos: ({self.pos[0]}, {self.pos[1]})" +\
-        #   (f", up: {self.neighbors['up']}" if self.neighbors["up"] else "") +\
-        #   (f", down: {self.neighbors['down']}" if self.neighbors["down"] else "") +\
-        #   (f", left: {self.neighbors['left']}" if self.neighbors["left"] else "") +\
-        #   (f", right: {self.neighbors['right']}" if self.neighbors["right"] else "") + " )"
+               _format_neighbor(self.neighbors[MazeDirection.UP], "↑") +\
+               _format_neighbor(self.neighbors[MazeDirection.DOWN], "↓") +\
+               _format_neighbor(self.neighbors[MazeDirection.LEFT], "←") +\
+               _format_neighbor(self.neighbors[MazeDirection.RIGHT], "→") + ")"
 
 def graphify_maze(
         tilemap: np.ndarray[np.uint16],
@@ -225,7 +247,7 @@ def graphify_maze(
             print(node.directed_repr())
     return maze_nodes
 
-def coordinize_graph(maze_nodes: list[MazeNode]) -> dict[tuple[int, int], MazeNode]:
+def coordinize_graph(maze_nodes: list[MazeNode]) -> dict[MazeCoord, MazeNode]:
     """
     Convert a list of MazeNodes into a dictionary with coordinates as keys,
     sorted by x then y.
@@ -250,31 +272,31 @@ def _process_tile(
     """
     Process a single tile in the tilemap to determine its role in the maze structure.
 
-    This function evaluates a tile in the maze and determines whether it should be 
-    treated as a wall, a straight path, or a node in the maze graph. It updates the 
-    weights and connections for horizontal and vertical paths and creates new maze 
+    This function evaluates a tile in the maze and determines whether it should be
+    treated as a wall, a straight path, or a node in the maze graph. It updates the
+    weights and connections for horizontal and vertical paths and creates new maze
     nodes when necessary.
 
     Args:
-        tilemap (numpy.ndarray): A 2D array representing the maze, where each value 
+        tilemap (numpy.ndarray): A 2D array representing the maze, where each value
             indicates the cost of traversing the tile.
         x (int): The x-coordinate (column number) of the tile being processed.
         y (int): The y-coordinate (row number) of the tile being processed.
-        high_cost_threshold (int): The cost threshold above which a tile is considered 
+        high_cost_threshold (int): The cost threshold above which a tile is considered
             a wall and not traversable.
-        horizontal_nodes (dict[int, list[tuple[int, MazeNode]]]): A dictionary mapping 
-            row indices to lists of tuples, where each tuple contains the weight of a 
-            horizontal edge and the connected MazeNode. The edge should be to the right 
+        horizontal_nodes (dict[int, list[tuple[int, MazeNode]]]): A dictionary mapping
+            row indices to lists of tuples, where each tuple contains the weight of a
+            horizontal edge and the connected MazeNode. The edge should be to the right
             of the node, if it exists.
-        vertical_nodes (dict[int, list[tuple[int, MazeNode]]]): A dictionary mapping 
-            column indices to lists of tuples, where each tuple contains the weight of 
-            a vertical edge and the connected MazeNode. The edge should be above the 
+        vertical_nodes (dict[int, list[tuple[int, MazeNode]]]): A dictionary mapping
+            column indices to lists of tuples, where each tuple contains the weight of
+            a vertical edge and the connected MazeNode. The edge should be above the
             node, if it exists.
-        maze_nodes (list[MazeNode]): A list to store all MazeNode objects created during 
+        maze_nodes (list[MazeNode]): A list to store all MazeNode objects created during
             processing so far.
-        horizontal_weight (list[int]): A single-element list holding the cumulative weight 
+        horizontal_weight (list[int]): A single-element list holding the cumulative weight
             of the current horizontal path being processed.
-        vertical_weights (list[int]): A list of cumulative weights for vertical paths, 
+        vertical_weights (list[int]): A list of cumulative weights for vertical paths,
             indexed by column.
 
     Returns:
@@ -339,7 +361,8 @@ def _connect_nodes(
 
     Notes:
         - Each node is expected to have a `neighbors` attribute, which is a dictionary
-          mapping directions ("right", "left", "down", "up") to tuples containing
+          mapping directions (MazeDirection.RIGHT, MazeDirection.LEFT,
+          MazeDirection.DOWN, MazeDirection.UP) to tuples containing
           the neighboring node and the path weight.
         - Connections are bidirectional, meaning if node A is connected to node B,
           then node B is also connected to node A.
@@ -349,35 +372,35 @@ def _connect_nodes(
             _, left_node = nodes[i]
             horizontal_path_weight, right_node = nodes[i + 1]
             if horizontal_path_weight < high_cost_threshold:
-                left_node.neighbors["right"] = (right_node, horizontal_path_weight)
-                right_node.neighbors["left"] = (left_node, horizontal_path_weight)
+                left_node.neighbors[MazeDirection.RIGHT] = (right_node, horizontal_path_weight)
+                right_node.neighbors[MazeDirection.LEFT] = (left_node, horizontal_path_weight)
     for _, nodes in vertical_nodes.items():
         for i in range(len(nodes) - 1):
             _, upper_node = nodes[i]
             vertical_path_weight, lower_node = nodes[i + 1]
             if vertical_path_weight < high_cost_threshold:
-                upper_node.neighbors["down"] = (lower_node, vertical_path_weight)
-                lower_node.neighbors["up"] = (upper_node, vertical_path_weight)
+                upper_node.neighbors[MazeDirection.DOWN] = (lower_node, vertical_path_weight)
+                lower_node.neighbors[MazeDirection.UP] = (upper_node, vertical_path_weight)
 
 def is_coord_in_path(
         maze_map: np.ndarray[np.uint16],
-        maze_dict: dict[tuple[int, int], MazeNode],
-        coord: tuple[int, int]
+        maze_dict: dict[MazeCoord, MazeNode],
+        coord: MazeCoord | tuple[int, int]
         ) -> bool:
     """
     Determines if a given coordinate is part of a path in the maze.
 
     A coordinate is considered part of a path if it is **not a node** and traversable
     (i.e., not a wall).
-            
+
     Check if a coordinate falls within a path in the maze, including straight lines.
 
     Args:
         maze_map (np.ndarray[np.uint16]): A 2D numpy array representing the maze,
             where each cell contains a cost value.
-        maze_dict (dict[tuple[int, int], MazeNode]): A dictionary mapping coordinates
+        maze_dict (dict[MazeCoord, MazeNode]): A dictionary mapping coordinates
             (x, y) to MazeNode objects, representing nodes in the maze.
-        coord (tuple[int, int]): The coordinate to check, represented as a tuple (x, y).
+        coord (MazeCoord | tuple[int, int]): The coordinate to check, represented as a tuple (x, y).
 
     Returns:
         bool: True if the coordinate is part of a path, False otherwise.
