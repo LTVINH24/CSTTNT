@@ -39,9 +39,12 @@ def clear_objects_on_screen(screen: Surface, background: Surface, *objects: Game
     for obj in objects:
         screen.blit(background, obj.position, obj.position)
 
-def draw_objects_on_screen(screen: Surface, *objects: GameObject):
+def draw_objects_on_screen(screen: Surface, *objects: GameObject | Surface):
     """
     Draw the objects on the screen by blitting their images.
     """
     for obj in objects:
-        screen.blit(obj.image, obj.position)
+        if isinstance(obj, Surface):
+            screen.blit(obj, (0, 0))
+        else:
+            screen.blit(obj.image, obj.position)

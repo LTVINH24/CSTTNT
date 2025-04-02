@@ -10,7 +10,20 @@ from .path_navigator import (
   move_along_path,
   are_nodes_connected,
 )
+# from .maze_master import MazeMaster
 
-__all__ = ["MazeCoord", "MazeDirection", "MazeNode", "MazePart", "MazeBuilder",
-           "rect_to_maze_coords", "is_snap_within", "direction_from",
-           "is_in_path_between", "move_along_path", "are_nodes_connected"]
+
+__all__ = [
+    "MazeCoord",
+    "MazeDirection",
+    "MazeNode",
+    "MazePart",
+    "MazeBuilder",
+    "rect_to_maze_coords",
+    "is_snap_within",
+    "direction_from",
+    "is_in_path_between",
+    "move_along_path",
+    "are_nodes_connected",
+    # "MazeMaster",
+]
