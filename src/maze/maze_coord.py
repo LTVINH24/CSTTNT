@@ -132,4 +132,7 @@ class MazeCoord(Sequence[int]):
         return f"({self.x:2}, {self.y:2})"
 
     def __hash__(self):
-        return hash((self.x, self.y))
+        return hash((self[0], self[1]))
+
+    def __copy__(self):
+        return MazeCoord(self[0], self[1])

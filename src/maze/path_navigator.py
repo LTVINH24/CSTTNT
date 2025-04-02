@@ -5,7 +5,7 @@ import pygame as pg
 import numpy as np
 
 from src.constant import TILE_SIZE, SNAP_THRESHOLD
-from src.maze.maze_builder import MazeNode
+from .maze_node import MazeDirection, MazeNode
 from .maze_coord import MazeCoord
 
 def rect_to_maze_coords(rect_center: tuple[int, int]) -> MazeCoord:
@@ -19,8 +19,8 @@ def rect_to_maze_coords(rect_center: tuple[int, int]) -> MazeCoord:
             in the maze.
     """
     return MazeCoord(
-        int(rect_center.x // MazeCoord.tile_size),
-        int(rect_center.y // MazeCoord.tile_size)
+        int(rect_center[0] // MazeCoord.tile_size),
+        int(rect_center[1] // MazeCoord.tile_size)
         )
 
 def is_snap_within(
@@ -49,7 +49,7 @@ def is_snap_within(
         node_center[1] - snap_threshold,
         snap_threshold * 2, snap_threshold * 2
         )
-    return checking_rect.collidepoint(rect_center.x, rect_center.y)
+    return checking_rect.collidepoint(rect_center[0], rect_center[1])
 
 def direction_from(start_node: MazeNode, end_node: MazeNode):
     """
@@ -130,13 +130,13 @@ def is_in_path_between(
         )
     checking_line: tuple[tuple[int, int], tuple[int, int]]
     match connecting_direction:
-        case "UP":
+        case MazeDirection.UP:
             checking_line = (start_rect.midtop, end_rect.midbottom)
-        case "DOWN":
+        case MazeDirection.DOWN:
             checking_line = (start_rect.midbottom, end_rect.midtop)
-        case "LEFT":
+        case MazeDirection.LEFT:
             checking_line = (start_rect.midleft, end_rect.midright)
-        case "RIGHT":
+        case MazeDirection.RIGHT:
             checking_line = (start_rect.midright, end_rect.midleft)
         case _:
             raise ValueError(f"Invalid direction: {connecting_direction}")
@@ -224,14 +224,15 @@ def move_along_path(
     if not isinstance(path, Sequence):
         raise TypeError("Path must be a mutable sequence (e.g., list)")
     if len(path) == 0 or distance == 0:
-        return rect_center
+        return path, rect_center
 
     remaining_path = list(path)
     for start_node, end_node in path:
         if is_in_path_between(rect_center, start_node, end_node):
             new_position, distance = _move_to_node(rect_center, end_node, distance)
             rect_center = new_position
-        remaining_path = remaining_path[1:]
+        else:
+            remaining_path = remaining_path[1:]
         if distance <= 0:
             return remaining_path, rect_center
 

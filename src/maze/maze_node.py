@@ -64,12 +64,13 @@ class MazeNode:
             If a neighbor is not present in a direction, that direction is omitted from the output.
     """
     pos: MazeCoord = field(default_factory=lambda: MazeCoord(0, 0))
-    neighbors: dict[MazeDirection, tuple[Self, int] | None] = field(default_factory=lambda: {
-        MazeDirection.UP: None,
-        MazeDirection.DOWN: None,
-        MazeDirection.LEFT: None,
-        MazeDirection.RIGHT: None
-    })
+    # neighbors: dict[MazeDirection, tuple[Self, int] | None] = field(default_factory=lambda: {
+    #     MazeDirection.UP: None,
+    #     MazeDirection.DOWN: None,
+    #     MazeDirection.LEFT: None,
+    #     MazeDirection.RIGHT: None
+    # })
+    neighbors: dict[MazeDirection, tuple[Self, int] | None] = field(default_factory=dict)
 
     @property
     def x(self) -> int:
@@ -108,3 +109,7 @@ class MazeNode:
                _format_neighbor(self.neighbors[MazeDirection.DOWN], "↓") +\
                _format_neighbor(self.neighbors[MazeDirection.LEFT], "←") +\
                _format_neighbor(self.neighbors[MazeDirection.RIGHT], "→") + ")"
+
+    def __copy__(self) -> Self:
+        """Create a copy of the MazeNode."""
+        return MazeNode(MazeCoord.__copy__(self.pos), self.neighbors.copy())
