@@ -40,6 +40,7 @@ class MazeCoord(Sequence[int]):
     x: int
     y: int
     tile_size: ClassVar[int] = TILE_SIZE
+    maze_offset: ClassVar[tuple[int, int]] = (0, 0)  # Offset for the maze
 
     def __init__(self, x: int = 0, y: int = 0) -> None:
         """
@@ -52,7 +53,8 @@ class MazeCoord(Sequence[int]):
         self.x = int(x)  # Ensure x is an integer (e.g., if it's np.uint16)
         self.y = int(y)
         self._rect = pg.Rect(
-            self.x * MazeCoord.tile_size, self.y * MazeCoord.tile_size,
+            self.x * MazeCoord.tile_size + MazeCoord.maze_offset[0],
+            self.y * MazeCoord.tile_size + MazeCoord.maze_offset[1],
             MazeCoord.tile_size, MazeCoord.tile_size
         )
 

@@ -1,6 +1,6 @@
 """
 This module defines the Maze class, which represents a maze structure."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pygame as pg
@@ -42,10 +42,20 @@ class MazeLayout:
     """
     maze_parts: np.ndarray[MazePart]
     maze_weight: np.ndarray[np.uint16]
-    maze_graph: list[MazeNode]
-    maze_dict: dict[MazeCoord, MazeNode]
-
     points_of_interest: dict[MazePart, list[MazeCoord]]
+
+    # Only available after "building" the maze
+    maze_graph: list[MazeNode] = field(default_factory=list)
+    maze_dict: dict[MazeCoord, MazeNode] = field(default_factory=dict)
+
+    def surface_sizes(self, tile_size = TILE_SIZE) -> tuple[int, int]:
+        """
+        Get the size of the maze surface that would return by `draw_surface`.
+
+        Returns:
+            tuple[int, int]: The width and height of the maze surface in pixels.
+        """
+        return (self.maze_parts.shape[1] * tile_size, self.maze_parts.shape[0] * tile_size)
 
     def draw_surface(
             self,
@@ -68,7 +78,7 @@ class MazeLayout:
             pg.Surface: A Pygame surface object containing the visual representation 
             of the maze, where each tile corresponds to a part of the maze grid.
         """
-        maze_size = (self.maze_parts.shape[1] * tile_size, self.maze_parts.shape[0] * tile_size)
+        maze_size = self.surface_sizes(tile_size=tile_size)
 
         surface_dict = MazePart.get_surface_dict()
         for key in surface_dict:

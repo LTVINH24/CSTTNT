@@ -26,7 +26,7 @@ from pygame.locals import QUIT
 # pylint: enable=no-name-in-module
 import numpy as np
 
-from src.constant import BASE_PATH
+from src.constant import BASE_PATH, SCREEN_WIDTH, SCREEN_HEIGHT
 from .maze_coord import MazeCoord
 from .maze_node import MazeNode, MazeDirection
 from .maze_parts import MazePart
@@ -35,13 +35,10 @@ from .maze_layout import MazeLayout
 
 LEVELS_PATH = os.path.join(BASE_PATH, "assets", "levels")
 
-WALL_COLOR = (64, 64, 64)  # Dark gray
-SPACE_COLOR = (192, 192, 192)  # Gray
-
 # Represent a cost of a tile that high enough to be considered as in-traversable
 VERY_HIGH_COST = MazePart.WALL.weight
 
-def build_maze(
+def load_maze(
     level_file_name: str,
     *,
     level_file_path: str = LEVELS_PATH,
@@ -106,15 +103,51 @@ def build_maze(
 
     _maze_weight: np.ndarray[np.uint16] = np.array(_maze_weight, dtype=np.uint16)
     _maze_parts: np.ndarray[MazePart] = np.array(_maze_parts)
-    _maze_graph: list[MazeNode] = graphify_maze(_maze_weight)
-    _maze_dict: dict[MazeCoord, MazeNode] = coordinize_graph(_maze_graph)
+
     return MazeLayout(
         maze_parts=_maze_parts,
         maze_weight=_maze_weight,
-        maze_graph=_maze_graph,
-        maze_dict=_maze_dict,
         points_of_interest=_interested_parts,
     )
+
+def build_maze(
+        maze_layout: MazeLayout,
+        *,
+        screen_sizes: tuple[int, int] = (SCREEN_WIDTH, SCREEN_HEIGHT),
+        maze_offset: tuple[int, int] = None,
+        ):
+    """
+    Build the maze layout and prepare it for rendering.
+
+    Should be call with `load_maze()` to create a complete MazeLayout object.
+
+    ```python
+    maze_layout = build_maze(load_maze("level1.txt"))
+    ```
+
+    This function initializes the maze layout, sets the maze offset,
+    and prepares the maze for rendering on the screen.
+    Args:
+        maze_layout (MazeLayout): The maze layout object to be built.
+        screen_sizes (tuple[int, int], optional): The size of the screen.
+            Defaults to (SCREEN_WIDTH, SCREEN_HEIGHT).
+        maze_offset (tuple[int, int], optional): The offset for the maze layout.
+            If not provided, it will be calculated based on the screen size
+            and the maze size.
+    Returns:
+        MazeLayout: The built maze layout object.
+    """
+    if not maze_offset:
+        maze_surface_sizes = maze_layout.surface_sizes()
+        maze_offset = (
+            screen_sizes[0] // 2 - maze_surface_sizes[0] // 2,
+            screen_sizes[1] // 2 - maze_surface_sizes[1] // 2
+        )
+    MazeCoord.maze_offset = maze_offset
+
+    maze_layout.maze_graph = graphify_maze(maze_layout.maze_weight)
+    maze_layout.maze_dict = coordinize_graph(maze_layout.maze_graph)
+    return maze_layout
 
 def is_coord_in_path(
         maze_map: np.ndarray[np.uint16],
@@ -347,24 +380,25 @@ if __name__ == "__main__":
     pg.init()
     # pylint: enable=no-member
 
-    screen_sizes = (800, 600)
-    pg.display.set_mode(screen_sizes)
+    main_screen_sizes = (SCREEN_WIDTH, SCREEN_HEIGHT)
+    pg.display.set_mode(main_screen_sizes)
     pg.display.set_caption("Maze Builder Test")
 
-    maze_layout = build_maze(f"level{LEVEL}.txt")
-    print(maze_layout.maze_weight)
-    maze_graph = graphify_maze(maze_layout.maze_weight, tracing=True)
+    # main_maze_layout = build_maze(load_maze(f"level{LEVEL}.txt"))
+    main_maze_layout = load_maze(f"level{LEVEL}.txt")
+    print(main_maze_layout.maze_weight)
+    maze_graph = graphify_maze(main_maze_layout.maze_weight, tracing=True)
 
     _maze_dict = coordinize_graph(maze_graph)
     print("---Maze Dictionary---")
-    for _y in range(maze_layout.maze_weight.shape[0]):
-        for _x in range(maze_layout.maze_weight.shape[1]):
+    for _y in range(main_maze_layout.maze_weight.shape[0]):
+        for _x in range(main_maze_layout.maze_weight.shape[1]):
             def _coord(_x: int, _y: int) -> str:
                 """Print the coordinates with color coding based on node connections."""
                 if (_x, _y) in _maze_dict:
                     # Yellow for nodes
                     return f"\033[93m({_x:2},{_y:2})\033[0m"
-                if is_coord_in_path(maze_layout.maze_weight, _maze_dict, (_x, _y)):
+                if is_coord_in_path(main_maze_layout.maze_weight, _maze_dict, (_x, _y)):
                     # Green for paths
                     return f"\033[92m({_x:2},{_y:2})\033[0m"
                 # Default for non-nodes
@@ -372,21 +406,11 @@ if __name__ == "__main__":
             print(_coord(_x, _y), end="")
         print()
 
-    # maze_layout = maze_layout.draw_surface(
-    #     calculate_offset=True,
-    #     center_to_offset=(screen_sizes[0] // 2, screen_sizes[1] // 2),
-    # )
+    # Draw the maze layout to the screen
     screen = pg.display.get_surface()
-
-    maze_layout.draw_surface(
+    main_maze_layout.draw_surface(
         screen=screen
     )
-
-    # Center the maze on the screen
-    # screen.blit(maze_layout, (
-    #     screen.get_rect().midtop[0] - maze_layout.get_rect().width / 2,
-    #     screen.get_rect().midleft[1] - maze_layout.get_rect().height / 2
-    #     ))
 
     while True:
         for event in pg.event.get():

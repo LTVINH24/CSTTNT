@@ -13,7 +13,7 @@ from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 from src.game_object import draw_objects_on_screen
 from .maze_node import MazeNode
-from .maze_builder import MazeBuilder
+from .maze_builder import load_maze, build_maze
 from .maze_parts import MazePart
 
 def random_picker[T](items: Iterable[T], seed=None) -> Generator[T, None, None]:
@@ -30,15 +30,18 @@ INTENSITY_COOLDOWN_TIME = 2  # seconds
 INTENSITY_RATE = 1.25  # increase speed by {value} times every INTENSITY_COOLDOWN_TIME seconds
 MAX_SPEED_MULTIPLIER = 10  # maximum speed multiplier for the ghosts
 
+ARBITARY_SCREEN_SIZES = (600, 400)  # arbitrary screen sizes for the maze layout
+
 class MazeMaster:
     """MazeMaster class to manage a maze level."""
     def __init__(self, screen: pg.Surface, level: int = 1):
         self.screen = screen
-
-        maze_builder = MazeBuilder(f"level{level}.txt")
-        self.maze_graph = maze_builder.maze_graph
-        self.maze_surface = maze_builder.maze_surface()
-        self.spawn_points = maze_builder.interested_parts[MazePart.SPAWN_POINT]
+        self.maze_layout = build_maze(
+            maze_layout=load_maze(f"level{level}.txt"),
+            screen_sizes=ARBITARY_SCREEN_SIZES
+            )
+        self.maze_graph = self.maze_layout.maze_graph
+        self.spawn_points = self.maze_layout.points_of_interest[MazePart.SPAWN_POINT]
 
         spawn_point_picker = random_picker(
             self.spawn_points,
@@ -93,7 +96,6 @@ class MazeMaster:
             ghost.update(dt)
         draw_objects_on_screen(
             self.screen,
-            self.maze_surface,
             *self.maze_ghosts
             )
 
@@ -102,7 +104,8 @@ if __name__ == "__main__":
     # pylint: disable=no-member
     pg.init()
     # pylint: enable=no-member
-    pg.display.set_mode((800, 600))
+    screen_sizes = ARBITARY_SCREEN_SIZES
+    pg.display.set_mode(screen_sizes)
     pg.display.set_caption("Maze Master Test")
 
     main_screen = pg.display.get_surface()
@@ -116,5 +119,11 @@ if __name__ == "__main__":
 
         delta_time = clock.tick(60) / 1000.0  # Convert milliseconds to seconds
 
+        # Draw the maze layout
+        maze_master.maze_layout.draw_surface(
+            screen=main_screen,
+            center_to_offset=main_screen.get_rect().center
+            )
+        # Draw the ghosts within the maze
         maze_master.update(delta_time)
         pg.display.flip()
