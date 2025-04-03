@@ -64,13 +64,7 @@ class MazeNode:
             If a neighbor is not present in a direction, that direction is omitted from the output.
     """
     pos: MazeCoord = field(default_factory=lambda: MazeCoord(0, 0))
-    # neighbors: dict[MazeDirection, tuple[Self, int] | None] = field(default_factory=lambda: {
-    #     MazeDirection.UP: None,
-    #     MazeDirection.DOWN: None,
-    #     MazeDirection.LEFT: None,
-    #     MazeDirection.RIGHT: None
-    # })
-    neighbors: dict[MazeDirection, tuple[Self, int] | None] = field(default_factory=dict)
+    neighbors: dict[MazeDirection, tuple[Self, int]] = field(default_factory=dict)
 
     @property
     def x(self) -> int:
@@ -88,11 +82,11 @@ class MazeNode:
 
     def directed_repr(self) -> str:
         """Get the string representation of the node with directions."""
-        def _format_neighbor(neighbor: tuple[Self, int] | None, icon: str) -> str:
+        def _format_neighbor(direction: MazeDirection, icon: str) -> str:
             """Format the neighbor for printing."""
-            if neighbor is None:
+            if direction not in self.neighbors:
                 return ""
-            node, cost = neighbor
+            node, cost = self.neighbors[direction]
             direction_colors = {
                 "↑": "\033[94m",  # Blue for up
                 "↓": "\033[93m",  # Yellow for down
@@ -105,10 +99,10 @@ class MazeNode:
             return f",  {color_start}{icon}( {node}" +\
               f", cost={int(cost):2} ){color_end}"
         return f"MazeNode( pos({self.pos[0]:2}, {self.pos[1]:2})" +\
-               _format_neighbor(self.neighbors[MazeDirection.UP], "↑") +\
-               _format_neighbor(self.neighbors[MazeDirection.DOWN], "↓") +\
-               _format_neighbor(self.neighbors[MazeDirection.LEFT], "←") +\
-               _format_neighbor(self.neighbors[MazeDirection.RIGHT], "→") + ")"
+               _format_neighbor(MazeDirection.UP, "↑") +\
+               _format_neighbor(MazeDirection.DOWN, "↓") +\
+               _format_neighbor(MazeDirection.LEFT, "←") +\
+               _format_neighbor(MazeDirection.RIGHT, "→") + ")"
 
     def __copy__(self) -> Self:
         """Create a copy of the MazeNode."""

@@ -19,7 +19,6 @@ Example:
 """
 import sys
 import os
-from collections.abc import Sequence
 
 import pygame as pg
 # pylint: disable=no-name-in-module
@@ -27,10 +26,12 @@ from pygame.locals import QUIT
 # pylint: enable=no-name-in-module
 import numpy as np
 
-from src.constant import BASE_PATH, TILE_SIZE
+from src.constant import BASE_PATH
 from .maze_coord import MazeCoord
 from .maze_node import MazeNode, MazeDirection
 from .maze_parts import MazePart
+
+from .maze_layout import MazeLayout
 
 LEVELS_PATH = os.path.join(BASE_PATH, "assets", "levels")
 
@@ -40,179 +41,80 @@ SPACE_COLOR = (192, 192, 192)  # Gray
 # Represent a cost of a tile that high enough to be considered as in-traversable
 VERY_HIGH_COST = MazePart.WALL.weight
 
-class MazeBuilder:
+def build_maze(
+    level_file_name: str,
+    *,
+    level_file_path: str = LEVELS_PATH,
+    interesting_parts: frozenset[MazePart] = frozenset((MazePart.SPAWN_POINT,))
+    ) -> MazeLayout:
     """
-    Class to load and process the maze levels.
-
-    This class handles loading maze levels from files, creating visual representations
-    of the maze, and converting the maze into graph structures for pathfinding.
-
-    Attributes:
-        maze_grid (np.ndarray[np.uint16]): A 2D numpy array representing the maze grid.
-        maze_graph (list[MazeNode]): A list of MazeNode objects representing the maze graph.
-        maze_dict (dict[MazeCoord, MazeNode]): A dictionary mapping coordinates to MazeNode objects.
-        maze_parts (dict[MazePart, list[MazeCoord]]):
-            A dictionary mapping MazePart enums to lists of coordinates.
-
-    Methods:
-        maze_surface() -> pg.Surface:
-            Creates a Pygame surface representing the maze for rendering.
+    Build the maze from a level file.
+    
+    This function reads a maze level file, processes its content to extract
+    the maze structure, weights, and points of interest, and returns a 
+    MazeLayout object containing all the relevant information.
+    Args:
+        level_file_name (str): The name of the level file to read.
+        level_file_path (str, optional): The path to the directory containing 
+            the level file. Defaults to LEVELS_PATH.
+        interesting_parts (frozenset[MazePart], optional): A set of MazePart 
+            elements that are considered points of interest. Defaults to a 
+            frozenset containing only MazePart.SPAWN_POINT.
+    Returns:
+        MazeLayout: An object containing the maze's parts, weights, graph 
+        representation, coordinate mapping, and points of interest.
+    Raises:
+        FileNotFoundError: If the specified level file does not exist.
+    Notes:
+        - Lines in the level file starting with '#' or empty lines are ignored.
+        - Each character in the level file corresponds to a MazePart, which 
+          determines the type and weight of that part of the maze.
+        - Points of interest are extracted based on the `interesting_parts` 
+          parameter and stored in a dictionary.
+    
     """
-    def __init__(
-            self,
-            level_file_name: str,
-            interesting_parts: frozenset[MazePart] = frozenset((MazePart.SPAWN_POINT,))
-            ) -> None:
-        """
-        Initialize the MazeBuilder with a specified level file.
+    # Generate the level data from the file
+    _maze_weight: list[list[int]] = []
+    _maze_parts: list[list[MazePart]] = []
+    _interested_parts: dict[MazePart, list[MazeCoord]] = {
+        part: [] for part in interesting_parts
+    }
+    with open(
+        os.path.join(level_file_path, level_file_name),
+        mode = "r",
+        encoding = "utf-8"
+        ) as level_file:
+        for row_index, line in enumerate(level_file):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
 
-        Args:
-            level_file_name (str): The name of the file containing the maze level to load.
-            interesting_parts (set[MazePart]):
-                A set of MazePart elements to include in the `maze_parts` attribute.
-                By default, only tracks (MazePart.SPAWN_POINT).
-        """
-        level_file_path = os.path.join(LEVELS_PATH, level_file_name)
+            current_weights_in_row: list[int] = []
+            current_parts_in_row: list[MazePart] = []
+            # Enumerate the line to get the column index and character
+            for col_index, char in enumerate(line):
+                maze_type = MazePart.from_char(char)
+                current_parts_in_row.append(maze_type)
+                current_weights_in_row.append(maze_type.weight)
+                if maze_type in interesting_parts:
+                    _interested_parts[maze_type].append(MazeCoord(col_index, row_index))
+                else:
+                    # Skip the unwanted parts
+                    pass
+            _maze_parts.append(current_parts_in_row)
+            _maze_weight.append(current_weights_in_row)
 
-        # Generate the level data from the file
-        _level_data: list[list[int]] = []
-        _maze_parts: list[list[MazePart]] = []
-        _interested_part_dict: dict[MazePart, list[MazeCoord]] = {
-            part: [] for part in interesting_parts
-        }
-        with open(level_file_path, "r", encoding="utf-8") as level_file:
-            for row_index, line in enumerate(level_file):
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                current_weights_in_row: list[int] = []
-                current_parts_in_row: list[MazePart] = []
-                # Enumerate the line to get the column index and character
-                for col_index, char in enumerate(line):
-                    maze_type = MazePart.from_char(char)
-                    current_parts_in_row.append(maze_type)
-                    current_weights_in_row.append(maze_type.weight)
-                    if maze_type in interesting_parts:
-                        _interested_part_dict[maze_type].append(MazeCoord(col_index, row_index))
-                    else:
-                        # Skip the unwanted parts
-                        pass
-                _maze_parts.append(current_parts_in_row)
-                _level_data.append(current_weights_in_row)
-        self._maze_grid = np.array(_level_data, dtype=np.uint16)
-        self._maze_parts = np.array(_maze_parts)
-        self._interested_parts = _interested_part_dict
-
-        self._maze_graph: list[MazeNode] = graphify_maze(self._maze_grid)
-        self._maze_dict: dict[MazeCoord, MazeNode] = coordinize_graph(self._maze_graph)
-
-    @property
-    def maze_grid(self) -> np.ndarray[np.uint16]:
-        """
-        Get the maze map as a numpy array.
-
-        Returns:
-            np.ndarray[np.uint16]: A 2D numpy array where each cell represents
-            the cost of traversing that part of the maze.
-        """
-        return self._maze_grid
-
-    @property
-    def maze_graph(self) -> list[MazeNode]:
-        """
-        Get the maze graph as a list of MazeNode.
-
-        The maze graph is a representation of the maze as a graph structure,
-        where each node corresponds to a significant point in the maze
-        (e.g., intersections, corners, or dead ends). Each node is connected
-        to its neighbors with edges that have weights representing the cost
-        of traversing between them.
-
-        Returns:
-            list[MazeNode]: A list of MazeNode objects representing the graph
-            structure of the maze.
-        """
-        return self._maze_graph
-
-    @property
-    def maze_dict(self) -> dict[MazeCoord, MazeNode]:
-        """
-        Get the maze graph as a dictionary of MazeNode.
-
-        The maze dictionary maps coordinates (MazeCoord) to their corresponding
-        MazeNode objects. This allows for quick lookup of nodes based on their
-        positions in the maze.
-
-        Returns:
-            dict[MazeCoord, MazeNode]: A dictionary where keys are MazeCoord objects
-            (or tuples representing coordinates) and values are MazeNode objects.
-        """
-        return self._maze_dict
-
-    @property
-    def maze_parts(self) -> Sequence[Sequence[MazePart]]:
-        """
-        Get the maze parts as a 2D array of MazePart.	
-
-        The maze parts represent the different types of tiles in the maze,
-        such as walls, spaces, and spawn points. This property provides
-        a convenient way to access the maze layout in terms of its
-        constituent parts.
-
-        Returns:
-            Sequence[Sequence[MazePart]]: A 2D array where each element is a MazePart
-            enum representing the type of tile at that position in the maze.
-        """
-        return self._maze_parts
-
-    @property
-    def interested_parts(self) -> dict[MazePart, list[MazeCoord]]:
-        """
-        Get the interested parts of the maze as a dictionary.
-
-        This property returns the parts of the maze that were specified
-        during initialization. It allows for easy access to specific parts
-        of the maze, such as spawn points, and can be useful for game logic
-        or rendering.
-
-        Can configure the parts to be tracked by passing a set of MazePart
-        elements to the constructor.
-
-        Returns:
-            dict[MazePart, list[MazeCoord]]: A dictionary where keys are MazePart
-            enums and values are lists of MazeCoord objects representing the
-            locations of that part in the maze.
-        """
-        return self._interested_parts
-
-    def maze_surface(self) -> pg.Surface:
-        """
-        Create a maze surface from the level data.
-
-        **Requires Pygame to be initialized.**
-        
-        Generate a Pygame surface representing the maze based on the level data.
-        This method creates a Pygame surface object with dimensions proportional 
-        to the maze grid and tile size. It iterates through the maze grid, 
-        retrieves the corresponding image for each maze part, and blits (draws) 
-        it onto the surface at the appropriate position.
-        Returns:
-            pg.Surface: A Pygame surface object containing the visual representation 
-            of the maze, where each tile corresponds to a part of the maze grid.
-        """
-        maze_surface = pg.Surface(
-            (self._maze_grid.shape[1] * TILE_SIZE, self._maze_grid.shape[0] * TILE_SIZE)
-        ).convert()
-
-        surface_dict = MazePart.get_surface_dict()
-        for key in surface_dict:
-            surface_dict[key] = surface_dict[key].convert()
-
-        for y, row in enumerate(self.maze_parts):
-            for x, part in enumerate(row):
-                maze_surface.blit(surface_dict[part], (x * TILE_SIZE, y * TILE_SIZE))
-        return maze_surface
+    _maze_weight: np.ndarray[np.uint16] = np.array(_maze_weight, dtype=np.uint16)
+    _maze_parts: np.ndarray[MazePart] = np.array(_maze_parts)
+    _maze_graph: list[MazeNode] = graphify_maze(_maze_weight)
+    _maze_dict: dict[MazeCoord, MazeNode] = coordinize_graph(_maze_graph)
+    return MazeLayout(
+        maze_parts=_maze_parts,
+        maze_weight=_maze_weight,
+        maze_graph=_maze_graph,
+        maze_dict=_maze_dict,
+        points_of_interest=_interested_parts,
+    )
 
 def is_coord_in_path(
         maze_map: np.ndarray[np.uint16],
@@ -444,23 +346,25 @@ if __name__ == "__main__":
     # pylint: disable=no-member
     pg.init()
     # pylint: enable=no-member
-    pg.display.set_mode((800, 600))
+
+    screen_sizes = (800, 600)
+    pg.display.set_mode(screen_sizes)
     pg.display.set_caption("Maze Builder Test")
 
-    maze_builder = MazeBuilder(f"level{LEVEL}.txt")
-    print(maze_builder.maze_grid)
-    maze_graph = graphify_maze(maze_builder.maze_grid, tracing=True)
+    maze_layout = build_maze(f"level{LEVEL}.txt")
+    print(maze_layout.maze_weight)
+    maze_graph = graphify_maze(maze_layout.maze_weight, tracing=True)
 
     _maze_dict = coordinize_graph(maze_graph)
     print("---Maze Dictionary---")
-    for _y in range(maze_builder.maze_grid.shape[0]):
-        for _x in range(maze_builder.maze_grid.shape[1]):
+    for _y in range(maze_layout.maze_weight.shape[0]):
+        for _x in range(maze_layout.maze_weight.shape[1]):
             def _coord(_x: int, _y: int) -> str:
                 """Print the coordinates with color coding based on node connections."""
                 if (_x, _y) in _maze_dict:
                     # Yellow for nodes
                     return f"\033[93m({_x:2},{_y:2})\033[0m"
-                if is_coord_in_path(maze_builder.maze_grid, _maze_dict, (_x, _y)):
+                if is_coord_in_path(maze_layout.maze_weight, _maze_dict, (_x, _y)):
                     # Green for paths
                     return f"\033[92m({_x:2},{_y:2})\033[0m"
                 # Default for non-nodes
@@ -468,14 +372,21 @@ if __name__ == "__main__":
             print(_coord(_x, _y), end="")
         print()
 
-    maze = maze_builder.maze_surface()
+    # maze_layout = maze_layout.draw_surface(
+    #     calculate_offset=True,
+    #     center_to_offset=(screen_sizes[0] // 2, screen_sizes[1] // 2),
+    # )
     screen = pg.display.get_surface()
 
+    maze_layout.draw_surface(
+        screen=screen
+    )
+
     # Center the maze on the screen
-    screen.blit(maze, (
-        screen.get_rect().midtop[0] - maze.get_rect().width / 2,
-        screen.get_rect().midleft[1] - maze.get_rect().height / 2
-        ))
+    # screen.blit(maze_layout, (
+    #     screen.get_rect().midtop[0] - maze_layout.get_rect().width / 2,
+    #     screen.get_rect().midleft[1] - maze_layout.get_rect().height / 2
+    #     ))
 
     while True:
         for event in pg.event.get():
