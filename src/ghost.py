@@ -3,13 +3,12 @@ Ghost class for the ghost character in Pygame.
 Inherits from GameObject.
 """
 import os
+import random
 from typing import Callable
-from math import ceil
-import pygame
+import pygame as pg
 
 from src.maze import MazeNode, MazeCoord, move_along_path
 from .constant import IMAGES_PATH
-from .game_object import GameObject
 
 GHOST_TYPES = { "blinky", "clyde", "inky", "pinky"}
 
@@ -21,7 +20,9 @@ ghost_sprite_paths = {
     "pinky": os.path.join(GHOST_SPRITES_BASE_PATH, "pinky.png"),
 }
 
-class Ghost(GameObject):
+THOUSAND = 1000
+ONE_PIXEL = 1
+class Ghost(pg.sprite.Sprite):
     """
     Ghost class for the ghost character in Pygame.
     Inherits from GameObject.
@@ -30,34 +31,49 @@ class Ghost(GameObject):
     # TODO: Remove the `initial_node` parameter and use `initial_position` instead.
     def __init__(
             self,
-            ghost_type: str | int,
             initial_position: MazeCoord,
             speed: int,
+            *,
+            ghost_type: str | int = None,
+            ghost_group: pg.sprite.Group = None,
             initial_node: MazeNode = MazeNode(),
             path_provider: Callable[[MazeNode, int], list[tuple[MazeNode, MazeNode]]] = None,
             ):
-        if isinstance(ghost_type, int):
+        if ghost_group is None:
+            pg.sprite.Sprite.__init__(self)
+        else:
+            # Add the ghost to the provided group
+            pg.sprite.Sprite.__init__(self, ghost_group)
+
+        # Deal with ghost type
+        if ghost_type is None:
+            ghost_type = random.choice(list(GHOST_TYPES))
+        elif isinstance(ghost_type, int):
             ghost_type = list(GHOST_TYPES)[ghost_type % len(GHOST_TYPES)]
-        if ghost_type not in GHOST_TYPES:
+        elif ghost_type not in GHOST_TYPES:
             raise ValueError(f"Invalid ghost type: {ghost_type}. Must be one of {GHOST_TYPES}.")
-
-        image = pygame.image.load(ghost_sprite_paths[ghost_type]).convert()
-
-        # TODO: Fix the initial position (corresponding to MazeCoord)
-        _initial_position = initial_node.pos.rect.topleft
-        super().__init__(image, _initial_position, speed)
+        self.image = pg.image.load(ghost_sprite_paths[ghost_type]).convert()
         self.ghost_type = ghost_type
 
+        # TODO: Fix the initial position (corresponding to MazeCoord)
+        _initial_position = initial_position.rect.topleft
+        _initial_position = initial_node.pos.rect.topleft # Don't doubt about topleft
+        self.rect = self.image.get_rect().move(_initial_position)
+        self.speed = speed # in pixels per second
+
+        # Path related attributes
         self.path: list[tuple[MazeNode, MazeNode]] = []
         self.last_standing_node: MazeNode = initial_node
         self.path_provider = path_provider
 
-        self.cumulative_delta_time = 0
+        # Cumulative delta time for movement update
+        self.cumulative_delta_time = 0 # in milliseconds
 
-    # TODO: Using integer delta time for better precision
-    def update(self, dt: float) -> None:
+    def update(self, dt: int) -> None:
         """
         Update the ghost's position based on its speed and direction.
+
+        Time delta is in milliseconds. Speed is pixels per second.
         """
         if not self.path:
             if self.path_provider is not None:
@@ -67,25 +83,25 @@ class Ghost(GameObject):
             self.last_standing_node = self.path[-1][1]
 
             _moving_distance: int
-            if dt * self.speed >= 1:
-                _moving_distance = ceil(dt * self.speed)
-                # Cumulate the fractional part of the distance
-                self.cumulative_delta_time += dt - _moving_distance * self.speed
-                if self.cumulative_delta_time * self.speed >= 1:
-                    _moving_distance += ceil(self.cumulative_delta_time * self.speed)
+            if dt * self.speed // THOUSAND >= ONE_PIXEL:
+                _moving_distance = dt * self.speed // THOUSAND
+                # Cumulate the remainder part of the distance
+                self.cumulative_delta_time += dt - _moving_distance * THOUSAND // self.speed
+                if self.cumulative_delta_time * self.speed // THOUSAND >= ONE_PIXEL:
+                    _moving_distance += self.cumulative_delta_time * self.speed // THOUSAND
                     self.cumulative_delta_time = 0
             else:
                 # Less-than-1-pixel-per-second fix
                 self.cumulative_delta_time += dt
-                if self.cumulative_delta_time * self.speed < 1:
+                if self.cumulative_delta_time * self.speed // THOUSAND < ONE_PIXEL:
                     return
-                _moving_distance = ceil(self.cumulative_delta_time * self.speed)
+                _moving_distance = self.cumulative_delta_time * self.speed // THOUSAND
                 self.cumulative_delta_time = 0
 
             new_path, new_center = move_along_path(
-                self.position.center,
+                self.rect.center,
                 self.path,
-                max(_moving_distance, 2)
+                max(_moving_distance, 1)
                 )
             self.path = new_path
-            self.position.center = new_center
+            self.rect.center = new_center

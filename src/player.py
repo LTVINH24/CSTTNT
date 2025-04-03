@@ -1,31 +1,45 @@
 """Player class for the player character in Pygame."""
 import os
-import pygame
+import pygame as pg
 # pylint: disable=no-name-in-module
 from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT
 # pylint: enable=no-name-in-module
 
-from .constant import IMAGES_PATH
-from .game_object import GameObject
+from .constant import IMAGES_PATH, SCREEN_HEIGHT, SCREEN_WIDTH
 
 PLAYER_SPRITE_PATH = os.path.join(IMAGES_PATH, "pacman-right", "1.png")
 
-class Player(GameObject):
+class Player(pg.sprite.Sprite):
     """
     Player class for the player character in Pygame.
-    Inherits from GameObject.
     """
+    SPRITE_WIDTH = 16
+    SPRITE_HEIGHT = 16
 
     def __init__(self, initial_position: tuple[int, int], speed: int):
-        image = pygame.image.load(PLAYER_SPRITE_PATH).convert()
-        super().__init__(image, initial_position, speed)
-        self.score = 0  # Initialize score attribute
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.image.load(PLAYER_SPRITE_PATH).convert()
+        self.rect = self.image.get_rect()
 
-    def update_score(self, points: int):
+        self.rect.center = initial_position
+        self.speed = speed
+
+    def move(self, up: bool = False, down: bool = False, left: bool = False, right: bool = False):
         """
-        Update the player's score by adding points.
+        Move the game object in the specified direction.
+        The movement is based on the speed of the object.
         """
-        self.score += points
+        if up:
+            self.rect.top -= self.speed
+        if down:
+            self.rect.top += self.speed
+        if left:
+            self.rect.left -= self.speed
+        if right:
+            self.rect.left += self.speed
+        # Boundary normalization
+        self.rect.top = max(0, min(self.rect.top, SCREEN_HEIGHT - self.SPRITE_HEIGHT))
+        self.rect.left = max(0, min(self.rect.left, SCREEN_WIDTH - self.SPRITE_WIDTH))
 
     def move_by_arrow_keys(self, keys: any):
         """

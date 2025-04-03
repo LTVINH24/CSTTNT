@@ -2,8 +2,9 @@
 import sys
 import pygame
 
+from .maze import MazeCoord
+
 from .constant import SCREEN_WIDTH, SCREEN_HEIGHT
-from .game_object import clear_objects_on_screen, draw_objects_on_screen
 from .player import Player
 from .ghost import Ghost, GHOST_TYPES
 
@@ -28,8 +29,26 @@ SECTION_COUNT = len(GHOST_TYPES) + 4
 for index, ghost_type in enumerate(GHOST_TYPES):
     x = SCREEN_WIDTH // (SECTION_COUNT + 1) * (index + 3)
     Y = SCREEN_HEIGHT * 2 // 5
-    ghost = Ghost(ghost_type, (x, Y), 3)
+    ghost = Ghost(
+        MazeCoord(0, 0),
+        3,
+        ghost_type=ghost_type
+        )
+    ghost.rect.topleft = (x, Y)
     ghosts.append(ghost)
+
+def draw_objects_on_screen(
+        drawing_screen: pygame.Surface,
+        *objects: pygame.sprite.Sprite | pygame.Surface
+        ):
+    """
+    Draw the objects on the screen by blitting their images.
+    """
+    for obj in objects:
+        if isinstance(obj, pygame.Surface):
+            drawing_screen.blit(obj, (0, 0))
+        if isinstance(obj, pygame.sprite.Sprite):
+            drawing_screen.blit(obj.image, obj.rect)
 
 while True:
     # poll for events
@@ -39,7 +58,7 @@ while True:
             sys.exit()
 
     # clean the previous frame
-    clear_objects_on_screen(screen, background, player, *ghosts)
+    screen.fill((0, 0, 0))
 
     # main game logic
     keys = pygame.key.get_pressed()
