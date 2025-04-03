@@ -149,7 +149,7 @@ def is_in_path_between(
 def _move_to_node(
         rect_center: tuple[int, int],
         end_node: MazeNode,
-        distance: int
+        distance: int,
         ) -> tuple[tuple[int, int], int]:
     """
     "Move" a rect to a specified node by a given distance.
@@ -192,9 +192,9 @@ def _move_to_node(
 def move_along_path(
         rect_center: tuple[int, int],
         path: Sequence[tuple[MazeNode, MazeNode]],
-        distance: int
+        distance: int,
         ) -> tuple[list[tuple[MazeNode, MazeNode]], tuple[int, int]]:
-    r"""
+    """
     Moves a rectangle along a specified path by a given distance.
 
     Args:

@@ -23,7 +23,13 @@ class MazeCoord(Sequence[int]):
     Attributes:
         x (int): The x-coordinate.
         y (int): The y-coordinate.
+
+    Class Variables:
         tile_size (int): The size of a tile in the maze.
+        maze_offset (tuple[int, int]):
+            The offset for the maze coordinates.
+            To be exactly, the coordinates of the top-left corner of the maze in pixel.
+            The offset is used to convert the maze coordinates to pixel coordinates.
 
     Properties:
         rect (pg.Rect): A pygame Rect object representing the tile area.
@@ -35,6 +41,8 @@ class MazeCoord(Sequence[int]):
         __len__(): Return the length of the tuple representation (always 2).
         __eq__(other): Compare MazeCoord with another tuple or MazeCoord.
         __repr__(): Return a string representation of the MazeCoord.
+        __hash__(): Return the hash of the MazeCoord.
+        __copy__(): Return a copy of the MazeCoord from the current instance.
     """
 
     x: int

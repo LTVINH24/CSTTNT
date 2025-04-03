@@ -1,20 +1,22 @@
 """
 Maze Builder Module.
 
-This module provides classes and functions to process and build maze levels for a Pacman-like game.
+This module provides functions and utilities to process and build maze levels
+for a Pacman-like game.
 It includes functionality for loading maze levels, visualizing them, and converting them
 into a graph representation for pathfinding and AI purposes.
 
-Classes:
-    MazeBuilder: Manages maze levels, including loading level data,
-        creating visual representations, and providing access to the maze map.
+Functions:
+    load_maze:
+        Loads a maze level from a file and processes its structure, weights,
+        and points of interest.
+    build_maze:
+        Prepares a maze layout for rendering and initializes its graph representation.
 
 Example:
     ```python
-    maze_builder = MazeBuilder("level1.txt")
-    maze_grid = maze_builder.maze_grid
-    maze_graph = maze_builder.maze_graph
-    maze_dict = maze_builder.maze_dict
+    maze_layout = load_maze("level1.txt")
+    maze_layout = build_maze(maze_layout)
     ```
 """
 import sys
@@ -45,7 +47,7 @@ def load_maze(
     interesting_parts: frozenset[MazePart] = frozenset((MazePart.SPAWN_POINT,))
     ) -> MazeLayout:
     """
-    Build the maze from a level file.
+    Load the maze from a level file.
     
     This function reads a maze level file, processes its content to extract
     the maze structure, weights, and points of interest, and returns a 
@@ -117,7 +119,7 @@ def build_maze(
         maze_offset: tuple[int, int] = None,
         ):
     """
-    Build the maze layout and prepare it for rendering.
+    Build the maze graph and prepare it for rendering.
 
     Should be call with `load_maze()` to create a complete MazeLayout object.
 
@@ -149,6 +151,7 @@ def build_maze(
     maze_layout.maze_dict = coordinize_graph(maze_layout.maze_graph)
     return maze_layout
 
+# TODO: Move to `maze_layout.py`
 def is_coord_in_path(
         maze_map: np.ndarray[np.uint16],
         maze_dict: dict[MazeCoord, MazeNode],

@@ -25,6 +25,11 @@ class MazeLayout:
         maze_weight (np.ndarray[np.uint16]): 
             A 2D array where each cell represents the cost of traversing that part 
             of the maze. Higher values indicate less traversable areas (e.g., walls).
+        points_of_interest (dict[MazePart, list[MazeCoord]]): 
+            A dictionary where keys are `MazePart` enums (e.g., spawn points) and values 
+            are lists of `MazeCoord` objects representing the locations of those parts 
+            in the maze. This is useful for identifying specific areas of interest 
+            (e.g., spawn points for ghosts or Pac-Man).
         maze_graph (list[MazeNode]): 
             A list of `MazeNode` objects representing the graph structure of the maze.
             Each node corresponds to a significant point in the maze (e.g., intersections, 
@@ -34,11 +39,14 @@ class MazeLayout:
             A dictionary mapping `MazeCoord` objects (or tuples representing coordinates) 
             to their corresponding `MazeNode` objects. This allows for quick lookup of 
             nodes based on their positions in the maze.
-        points_of_interest (dict[MazePart, list[MazeCoord]]): 
-            A dictionary where keys are `MazePart` enums (e.g., spawn points) and values 
-            are lists of `MazeCoord` objects representing the locations of those parts 
-            in the maze. This is useful for identifying specific areas of interest 
-            (e.g., spawn points for ghosts or Pac-Man).
+
+    Methods:
+        surface_sizes: 
+            Returns the size of the maze surface in pixels based on the number of 
+            tiles and the tile size.
+        draw_surface:
+            Visualizes the maze as a Pygame surface or draws it directly onto a 
+            provided screen. This method requires Pygame to be initialized.
     """
     maze_parts: np.ndarray[MazePart]
     maze_weight: np.ndarray[np.uint16]
@@ -65,18 +73,35 @@ class MazeLayout:
             tile_size = TILE_SIZE,
             ) -> pg.Surface:
         """
-        Create a maze surface from the level data.
+        Visualize the maze as a Pygame surface or draw the maze directly onto a provided screen.
 
         **Requires Pygame to be initialized.**
         
-        Generate a Pygame surface representing the maze based on the level data.
-        This method creates a Pygame surface object with dimensions proportional 
-        to the maze grid and tile size. It iterates through the maze grid, 
-        retrieves the corresponding image for each maze part, and blits (draws) 
-        it onto the surface at the appropriate position.
+        This method generates a visual representation of the maze based on the 
+        level data and either returns it as a new Pygame surface or draws it 
+        directly onto a provided screen. The maze is constructed by iterating 
+        through the maze grid and blitting the corresponding images for each 
+        maze part.
+
+        Args:
+            screen (pg.Surface, optional):
+                A Pygame surface (e.g., the game screen) 
+                to draw the maze onto. If provided, the maze will be drawn directly 
+                onto this surface. Defaults to None.
+            center_to_offset (tuple[int, int], optional):
+                A tuple representing the offset to center the maze on the screen
+                (i.e., the desired location for the center of the maze).
+                This is useful for positioning the maze in a specific location.
+
+                Only take effect if `screen` is provided.
+                Defaults to (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2).
+            tile_size (int, optional):
+                The size of each tile in pixels. Defaults to TILE_SIZE.
+
         Returns:
-            pg.Surface: A Pygame surface object containing the visual representation 
-            of the maze, where each tile corresponds to a part of the maze grid.
+            pg.Surface: If `screen` is provided, the same screen surface with the 
+            maze drawn on it is returned. If `screen` is not provided, a new Pygame 
+            surface containing the maze is returned.
         """
         maze_size = self.surface_sizes(tile_size=tile_size)
 
