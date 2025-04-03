@@ -3,6 +3,7 @@
 from .maze_coord import MazeCoord
 from .maze_node import MazeDirection, MazeNode
 from .maze_parts import MazePart
+from .maze_layout import MazeLayout
 from .maze_builder import load_maze, build_maze
 from .path_navigator import (
   rect_to_maze_coords,
@@ -10,14 +11,14 @@ from .path_navigator import (
   move_along_path,
   are_nodes_connected,
 )
-# from .maze_master import MazeMaster
-
+from .maze_supervisor import MazeLevel, set_up_level, render_maze_level
 
 __all__ = [
     "MazeCoord",
     "MazeDirection",
     "MazeNode",
     "MazePart",
+    "MazeLayout",
     "load_maze",
     "build_maze",
     "rect_to_maze_coords",
@@ -26,5 +27,7 @@ __all__ = [
     "is_in_path_between",
     "move_along_path",
     "are_nodes_connected",
-    # "MazeMaster",
+    "MazeLevel",
+    "set_up_level",
+    "render_maze_level",
 ]
