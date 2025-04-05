@@ -1,4 +1,11 @@
+"""
+This module implements the "Ghost Parade" level for a Pacman-like game. It sets up a maze
+with ghosts that increase their speed over time.
 
+Functions:
+    run_level():
+        Runs the maze level with ghosts, handling game logic, rendering, and ghost speed updates.
+"""
 import sys
 import random
 from collections.abc import Iterable, Generator
@@ -17,14 +24,14 @@ from src.maze import (
 from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 
-NUMBER_OF_GHOSTS = 10
+NUMBER_OF_GHOSTS = 25
 INITIAL_SPEED_MULTIPLIER = 1  # initial speed multiplier for the ghosts
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # base speed in pixels per second
 INTENSITY_RATE = 1.25  # increase speed by {value} times every INTENSITY_COOLDOWN_TIME seconds
-INTENSITY_COOLDOWN_TIME = 2  # seconds
-MAX_SPEED_MULTIPLIER = 10  # maximum speed multiplier for the ghosts
+INTENSITY_COOLDOWN_TIME = 0.5  # seconds
+MAX_SPEED_MULTIPLIER = 5  # maximum speed multiplier for the ghosts
 
-ARBITARY_SCREEN_SIZES = (600, 400)  # arbitrary screen sizes for the maze layout
+ARBITARY_SCREEN_SIZES = (400, 400)  # arbitrary screen sizes for the maze layout
 LEVEL = 1
 
 def run_level():
@@ -139,7 +146,7 @@ def update_ghost_speed(
 def path_provider(
         starting_node: MazeNode,
         path_length: int = 5
-        ) -> list[tuple[MazeNode, MazeNode]]:
+        ) -> list[MazeNode]:
     """
     Generate a random path of nodes in the maze.
 
@@ -150,11 +157,12 @@ def path_provider(
             Default is 5.
 
     Returns:
-        list[tuple[MazeNode, MazeNode]]:
-            A list of tuples containing the starting and ending nodes of the path.
-            Each tuple is of the form (starting_node, ending_node).
+        list[MazeNode]:
+            A list of nodes representing the path.
+            The first node is the starting point of the path.
+            The last node is the ending point of the path.
     """
-    path = []
+    path = [ starting_node]
     _current_node = starting_node
     for _ in range(path_length):
         next_node: MazeNode = random.choice(
@@ -162,7 +170,7 @@ def path_provider(
                 filter(None, _current_node.neighbors.values())
                 )
         )[0] # Only take the node part, not along with the weight part
-        path.append((_current_node, next_node))
+        path.append(next_node)
         _current_node = next_node
     return path
 

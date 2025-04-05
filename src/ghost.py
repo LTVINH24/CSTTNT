@@ -22,6 +22,14 @@ ghost_sprite_paths = {
 
 THOUSAND = 1000
 ONE_PIXEL = 1
+DEFAULT_PATH_LENGTH = 5
+
+def empty_path_provider(_: MazeNode, __: int) -> list[MazeNode]:
+    """
+    Empty path provider function that returns an empty path.
+    """
+    return []
+
 class Ghost(pg.sprite.Sprite):
     """
     Ghost class for the ghost character in Pygame.
@@ -37,7 +45,7 @@ class Ghost(pg.sprite.Sprite):
             ghost_type: str | int = None,
             ghost_group: pg.sprite.Group = None,
             initial_node: MazeNode = MazeNode(),
-            path_provider: Callable[[MazeNode, int], list[tuple[MazeNode, MazeNode]]] = None,
+            path_provider: Callable[[MazeNode, int], list[MazeNode]] = empty_path_provider,
             ):
         if ghost_group is None:
             pg.sprite.Sprite.__init__(self)
@@ -62,7 +70,9 @@ class Ghost(pg.sprite.Sprite):
         self.speed = speed # in pixels per second
 
         # Path related attributes
-        self.path: list[tuple[MazeNode, MazeNode]] = []
+
+        # TODO: Infer the path from the initial position, not using the initial node.
+        self.path: list[MazeNode] = []
         self.last_standing_node: MazeNode = initial_node
         self.path_provider = path_provider
 
@@ -75,13 +85,12 @@ class Ghost(pg.sprite.Sprite):
 
         Time delta is in milliseconds. Speed is pixels per second.
         """
-        if not self.path:
-            if self.path_provider is not None:
-                self.path = self.path_provider(self.last_standing_node)
+        if self.path and len(self.path) == 1:
+            self.last_standing_node = self.path[0]
+            self.path = []
+        if not self.path or len(self.path) == 0:
+            self.path = self.path_provider(self.last_standing_node, DEFAULT_PATH_LENGTH)
         if self.path:
-            # TODO: Naive calculation
-            self.last_standing_node = self.path[-1][1]
-
             _moving_distance: int
             if dt * self.speed // THOUSAND >= ONE_PIXEL:
                 _moving_distance = dt * self.speed // THOUSAND

@@ -191,17 +191,17 @@ def _move_to_node(
 
 def move_along_path(
         rect_center: tuple[int, int],
-        path: Sequence[tuple[MazeNode, MazeNode]],
+        path: Sequence[MazeNode],
         distance: int,
-        ) -> tuple[list[tuple[MazeNode, MazeNode]], tuple[int, int]]:
+        ) -> tuple[list[MazeNode], tuple[int, int]]:
     """
     Moves a rectangle along a specified path by a given distance.
 
     Args:
         rect_center (tuple[int, int]):
           The current center position of the rectangle as (x, y) coordinates.
-        path (Sequence[tuple[MazeNode, MazeNode]]):
-          The path to follow, represented as a sequence of tuples of MazeNode objects.
+        path (Sequence[MazeNode]):
+          The path to follow, represented as a sequence of MazeNode objects.
         distance (int):
           The distance to move along the path. Must be a non-negative integer.
 
@@ -223,17 +223,16 @@ def move_along_path(
         raise ValueError("Distance must be non-negative")
     if not isinstance(path, Sequence):
         raise TypeError("Path must be a mutable sequence (e.g., list)")
-    if len(path) == 0 or distance == 0:
+    if len(path) <= 1 or distance == 0:
         return path, rect_center
 
     remaining_path = list(path)
-    for start_node, end_node in path:
+    while distance > 0 and len(remaining_path) > 1:
+        start_node, end_node = remaining_path[0], remaining_path[1]
         if is_in_path_between(rect_center, start_node, end_node):
             new_position, distance = _move_to_node(rect_center, end_node, distance)
             rect_center = new_position
         else:
             remaining_path = remaining_path[1:]
-        if distance <= 0:
-            return remaining_path, rect_center
 
     return remaining_path, rect_center
