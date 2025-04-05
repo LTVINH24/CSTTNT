@@ -21,8 +21,10 @@ from src.maze import (
     MazeNode, MazeCoord,
     MazeLevel, set_up_level, render_maze_level
 )
+from src.pathfinding import PathDispatcher, build_path_dispatcher, random_walk_path_finder
 from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
+from src.player import Player
 
 NUMBER_OF_GHOSTS = 25
 INITIAL_SPEED_MULTIPLIER = 1  # initial speed multiplier for the ghosts
@@ -31,7 +33,7 @@ INTENSITY_RATE = 1.25  # increase speed by {value} times every INTENSITY_COOLDOW
 INTENSITY_COOLDOWN_TIME = 0.5  # seconds
 MAX_SPEED_MULTIPLIER = 5  # maximum speed multiplier for the ghosts
 
-ARBITARY_SCREEN_SIZES = (400, 400)  # arbitrary screen sizes for the maze layout
+ARBITARY_SCREEN_SIZES = (800, 600)  # arbitrary screen sizes for the maze layout
 LEVEL = 1
 
 def run_level():
@@ -53,10 +55,27 @@ def run_level():
         level=LEVEL,
     )
 
+    pacman_position = random.choice(maze_level.spawn_points).rect.center
+    pacman = Player(
+        initial_position= (
+            pacman_position[0] + MazeCoord.maze_offset[0],
+            pacman_position[1] + MazeCoord.maze_offset[1],
+        ),
+        speed=BASE_SPEED,
+    )
+    pacman_group = pg.sprite.GroupSingle(pacman)
+
+    path_dispatcher = build_path_dispatcher(
+        maze_layout=maze_level.maze_layout,
+        player=pacman,
+        pathfinder=random_walk_path_finder,
+    )
+
     set_up_ghosts(
         ghost_group=maze_level.ghosts,
         spawn_points=maze_level.spawn_points,
-        spawn_nodes=maze_level.maze_layout.maze_graph
+        spawn_nodes=maze_level.maze_layout.maze_graph,
+        path_dispatcher=path_dispatcher,
     )
 
     # Speed setup
@@ -84,6 +103,8 @@ def run_level():
             cumulative_delta_time=cumulative_delta_time,
             intensity=intensity,
         )
+        pacman_group.draw(screen)
+        path_dispatcher.update(dt=delta_time)
 
         # Update the screen
         pg.display.flip()
@@ -92,6 +113,7 @@ def set_up_ghosts(
         ghost_group: pg.sprite.Group,
         spawn_points: list[MazeCoord],
         spawn_nodes: list[MazeNode],
+        path_dispatcher: PathDispatcher = None,
     ) -> None:
     """
     Set up the ghosts in the maze level.
@@ -114,7 +136,7 @@ def set_up_ghosts(
             ghost_type=ghost_type,
             ghost_group=ghost_group,
             initial_node=copy(spawn_node),
-            path_provider=path_provider,
+            path_dispatcher=path_dispatcher,
         )
 
 def update_ghost_speed(
@@ -142,37 +164,6 @@ def update_ghost_speed(
             ghost.speed = int(BASE_SPEED * intensity)
         cumulative_delta_time = 0
     return cumulative_delta_time, intensity
-
-def path_provider(
-        starting_node: MazeNode,
-        path_length: int = 5
-        ) -> list[MazeNode]:
-    """
-    Generate a random path of nodes in the maze.
-
-    Args:
-        starting_node (MazeNode): The starting node for the path.
-        path_length (int):
-            The length of the path.
-            Default is 5.
-
-    Returns:
-        list[MazeNode]:
-            A list of nodes representing the path.
-            The first node is the starting point of the path.
-            The last node is the ending point of the path.
-    """
-    path = [ starting_node]
-    _current_node = starting_node
-    for _ in range(path_length):
-        next_node: MazeNode = random.choice(
-            list(
-                filter(None, _current_node.neighbors.values())
-                )
-        )[0] # Only take the node part, not along with the weight part
-        path.append(next_node)
-        _current_node = next_node
-    return path
 
 def random_picker[T](items: Iterable[T], seed=None) -> Generator[T, None, None]:
     """Generator to pick random items from a list."""

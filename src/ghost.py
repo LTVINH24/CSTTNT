@@ -4,10 +4,10 @@ Inherits from GameObject.
 """
 import os
 import random
-from typing import Callable
 import pygame as pg
 
-from src.maze import MazeNode, MazeCoord, move_along_path
+from src.maze import MazeNode, MazeCoord, move_along_path, is_snap_within
+from src.pathfinding import PathListener, PathDispatcher
 from .constant import IMAGES_PATH
 
 GHOST_TYPES = { "blinky", "clyde", "inky", "pinky"}
@@ -24,13 +24,7 @@ THOUSAND = 1000
 ONE_PIXEL = 1
 DEFAULT_PATH_LENGTH = 5
 
-def empty_path_provider(_: MazeNode, __: int) -> list[MazeNode]:
-    """
-    Empty path provider function that returns an empty path.
-    """
-    return []
-
-class Ghost(pg.sprite.Sprite):
+class Ghost(pg.sprite.Sprite, PathListener):
     """
     Ghost class for the ghost character in Pygame.
     Inherits from GameObject.
@@ -45,7 +39,7 @@ class Ghost(pg.sprite.Sprite):
             ghost_type: str | int = None,
             ghost_group: pg.sprite.Group = None,
             initial_node: MazeNode = MazeNode(),
-            path_provider: Callable[[MazeNode, int], list[MazeNode]] = empty_path_provider,
+            path_dispatcher: PathDispatcher = None,
             ):
         if ghost_group is None:
             pg.sprite.Sprite.__init__(self)
@@ -72,12 +66,24 @@ class Ghost(pg.sprite.Sprite):
         # Path related attributes
 
         # TODO: Infer the path from the initial position, not using the initial node.
-        self.path: list[MazeNode] = []
-        self.last_standing_node: MazeNode = initial_node
-        self.path_provider = path_provider
+        self.path: list[MazeNode] = [ initial_node ]
+        self.path_dispatcher = path_dispatcher
 
         # Cumulative delta time for movement update
         self.cumulative_delta_time = 0 # in milliseconds
+
+    def halt_current_and_request_new_path(self):
+        if len(self.path) == 0:
+            # TODO: Infer the path from the initial position.
+            pass
+        elif is_snap_within(self.rect.center, self.path[0]):
+            self.path = self.path[0] # Keep the first node in the path
+        else:
+            self.path = self.path[:2] # Keep the first two nodes in the path
+        self.path_dispatcher.receive_request_for(
+            self,
+            tuple(self.path),
+            )
 
     def update(self, dt: int) -> None:
         """
@@ -85,11 +91,20 @@ class Ghost(pg.sprite.Sprite):
 
         Time delta is in milliseconds. Speed is pixels per second.
         """
-        if self.path and len(self.path) == 1:
-            self.last_standing_node = self.path[0]
-            self.path = []
+        if self.new_path:
+            self.path = self.new_path
+            self.new_path = []
         if not self.path or len(self.path) == 0:
-            self.path = self.path_provider(self.last_standing_node, DEFAULT_PATH_LENGTH)
+            # TODO: Infer the path from the initial position.
+            return
+        if len(self.path) <= 1:
+            if self.waiting_for_path:
+                return
+            self.path_dispatcher.receive_request_for(
+                self,
+                tuple(self.path),
+                )
+            return
         if self.path:
             _moving_distance: int
             if dt * self.speed // THOUSAND >= ONE_PIXEL:

@@ -197,6 +197,9 @@ def move_along_path(
     """
     Moves a rectangle along a specified path by a given distance.
 
+    *(If the rect center happens to snap with a node after moving enough distance,
+    the node(s) before it would be removed from the path)*
+
     Args:
         rect_center (tuple[int, int]):
           The current center position of the rectangle as (x, y) coordinates.
@@ -232,7 +235,11 @@ def move_along_path(
         if is_in_path_between(rect_center, start_node, end_node):
             new_position, distance = _move_to_node(rect_center, end_node, distance)
             rect_center = new_position
+            if distance == 0 and is_snap_within(rect_center, end_node):
+                # The rect has reached the end node
+                remaining_path = remaining_path[1:]
         else:
+            # Also happens if the rect is snapping to the second node
             remaining_path = remaining_path[1:]
 
     return remaining_path, rect_center
