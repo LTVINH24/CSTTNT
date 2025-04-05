@@ -1,5 +1,35 @@
 # Project 1 - Let's chase Pac-man!
 
+## Important Note
+
+- To run the levels:
+
+  ```bash
+  python -m src.levels.<level_name>
+  ```
+
+  - For example: `python -m src.levels.ghost_parade` or `python -m src.levels.level_template` (both should be working fine).
+
+- To implement a new pathfinding algorithm:
+
+  - Create a function in a new file in the `src/pathfinding` directory (e.g., `depth_first_search_pathfinder.py`), using the `src/pathfinding/path_finder_template.py` as a template.
+  - To add the test level, create a new file in the `src/levels` directory (e.g., `depth_first_search.py`), using the `src/levels/level_template.py` as a template (you only need to change the `path_finder` param in the `build_path_dispatcher` function call).
+
+- For permormance assessment, you `src/pathfinding/pathfinding_monitor.py` and adjust as you need.
+
+- _Remember to create a new branch for each new feature you want to implement. Pull request to the `main` branch when you are done._ :smiley:
+
+## To-dos:
+
+- Add the visualization for the path found.
+- Moving the pacman using `maze_graph`.
+- Ghost/pacman collision detection.
+- Ghosts colliding with other ghosts.
+- Ghost and player spawn-point separation.
+- All levels accessible from the main menu.
+- Higher pixel resolution for better visualization (e.g., 32x32 instead of 16x16).
+- Animation for pacman (not really needed, but it would be nice to have).
+
 ## Installation Guide
 
 ### Pre-requisites

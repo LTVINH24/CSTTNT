@@ -57,7 +57,7 @@ def set_up_level(
         spawn_points=sorted(_spawn_points, key=lambda x: (x.x, x.y)),
     )
 
-def render_maze_level(     
+def render_maze_level(
         maze_level: MazeLevel,
         screen: pg.Surface,
         dt: int, # delta time in milliseconds, the same as `pg.Clock.tick` return value
