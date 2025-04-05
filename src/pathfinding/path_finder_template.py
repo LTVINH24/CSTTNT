@@ -1,59 +1,48 @@
 """
-This module provides a random walk pathfinder function for generating a random path 
-through a maze graph. The function implements a random walk algorithm, starting from 
-a given location and randomly selecting neighboring nodes to traverse until a 
-predefined path length is reached.
-Functions:
-    random_walk_path_finder: Generates a random path through a maze graph using a 
-    random walk algorithm.
-Classes:
-    PathfindingResult: Represents the result of a pathfinding operation, including 
-Constants:
-    PATH_LENGTH: The default length of the random path to be generated.
+TODO: Provide a reasonable description for your module.
 """
-import random
+# TODO: Remove `np` if not used
+# pylint: disable=unused-import
+import numpy as np
+# pylint: enable=unused-import
 
 from src.maze import MazeNode
 from .pathfinder import Pathfinder, PathfindingResult
+from .pathfinding_monitor import pathfinding_monitor
 
-PATH_LENGTH = 5
-def random_walk_path_finder(
+# TODO: Remove the `-` prefix from the function name and add a proper name.
+@pathfinding_monitor
+def your_path_finder(
     _maze_graph: list[MazeNode],
-    start_location: tuple[MazeNode, MazeNode | None], # max-length = 2
-    _target_location: tuple[MazeNode, MazeNode | None], # max-length = 2
+    _start_location: tuple[MazeNode, MazeNode | None],
+    _target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
     """
-    Random walk pathfinder function that returns a random pathfinding result.
+    Finds a path in a maze graph from a start location to a target location.
 
+    TODO: Provide a detailed description of the algorithm used for pathfinding.
+    
     Args:
-        maze_graph (list[MazeNode]): The graph representation of the maze.
-        start_location (tuple[MazeNode, MazeNode | None]): The starting location for the path.
-        target_location (tuple[MazeNode, MazeNode | None]): The target location for the path.
+        _maze_graph (list[MazeNode]):
+            The graph representation of the maze, where each node represents a position in the maze.
+        _start_location (tuple[MazeNode, MazeNode | None]):
+            A tuple of one or two MazeNodes.
 
+            If this is a tuple of one node, it means that the object is standing on a node.
+
+            If this is a tuple of two nodes, it means that the object is currently moving
+            from the first node to the second node. In this case, **both nodes should be included
+            at the start of the returning path at any order**.
+          
+        _target_location (tuple[MazeNode, MazeNode | None]):
+            Similar to **_start_location**, but for the goal location.
+
+            If this is a tuple of two nodes, **both nodes should be included at the end
+            of the returning path at any order**.
     Returns:
-        PathfindingResult: A result containing the random path and an empty list for costs.
+        PathfindingResult:
+            An object containing the path from the start to the target and any additional metadata.
     """
-    starting_node = start_location[0] if len(start_location) <= 1 else start_location[1]
-    path_length = PATH_LENGTH  # Default path length
+    return PathfindingResult([], [])
 
-    # Generate a random path
-    path = list(start_location)
-    expanded_nodes = [starting_node]
-    _current_node = starting_node
-    for _ in range(path_length):
-        next_node: MazeNode = random.choice(
-            list(
-                filter(None, _current_node.neighbors.values())
-            )
-        )[0]  # Only take the node part, not along with the weight part
-
-        # Update the path and expanded nodes
-        path.append(next_node)
-        expanded_nodes.append(next_node)
-        _current_node = next_node
-
-    # Return the pathfinding result
-    return PathfindingResult(path, expanded_nodes)
-
-assert isinstance(random_walk_path_finder, Pathfinder), \
-  "random_walk_path_finder must be a callable of type Pathfinder"
+assert isinstance(your_path_finder, Pathfinder)

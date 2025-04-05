@@ -26,8 +26,8 @@ from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
 
-NUMBER_OF_GHOSTS = 4
-INITIAL_SPEED_MULTIPLIER = 20  # initial speed multiplier for the ghosts
+NUMBER_OF_GHOSTS = 1
+INITIAL_SPEED_MULTIPLIER = 4  # initial speed multiplier for the ghosts
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # base speed in pixels per second
 
 ARBITARY_SCREEN_SIZES = (800, 600)  # arbitrary screen sizes for the maze layout

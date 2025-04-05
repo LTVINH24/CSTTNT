@@ -1,6 +1,15 @@
 """
-Ghost class for the ghost character in Pygame.
-Inherits from GameObject.
+This module defines the `Ghost` class, which represents a ghost character in the Pacman game. 
+The `Ghost` class is responsible for managing the ghost's position, movement, and interaction 
+with the maze.
+It supports pathfinding and movement updates based on a given speed and path dispatcher.
+
+Classes:
+    Ghost:
+        A subclass of `pygame.sprite.Sprite` and `PathListener` that represents a ghost character 
+        in the game. It handles movement, pathfinding, and interactions with the maze.
+Constants:
+    GHOST_TYPES (set): A set of predefined ghost types ("blinky", "clyde", "inky", "pinky").
 """
 import os
 import random
@@ -22,12 +31,29 @@ ghost_sprite_paths = {
 
 THOUSAND = 1000
 ONE_PIXEL = 1
-DEFAULT_PATH_LENGTH = 5
 
 class Ghost(pg.sprite.Sprite, PathListener):
     """
-    Ghost class for the ghost character in Pygame.
-    Inherits from GameObject.
+    Represents a ghost character in the Pacman game.
+    The Ghost class is responsible for managing the ghost's position, movement,
+    and interaction with the maze. It supports pathfinding and movement updates
+    based on a given speed and path dispatcher.
+
+    Attributes:
+        ghost_type (str): The type of the ghost, chosen from predefined GHOST_TYPES.
+        image (pg.Surface): The sprite image of the ghost.
+        rect (pg.Rect): The rectangular area representing the ghost's position.
+        speed (int): The movement speed of the ghost in pixels per second.
+        path (list[MazeNode]): The current path the ghost is following.
+        path_dispatcher (PathDispatcher): The dispatcher responsible for handling path requests.
+        cumulative_delta_time (int): Accumulated time in milliseconds for movement updates.
+
+    Methods:
+        halt_current_and_request_new_path():
+            Halts the current path and requests a new path from the path dispatcher.
+        update(dt: int):
+            Updates the ghost's position based on its speed and the elapsed time (dt).
+            Handles path traversal and requests new paths when necessary.
     """
 
     # TODO: Remove the `initial_node` parameter and use `initial_position` instead.

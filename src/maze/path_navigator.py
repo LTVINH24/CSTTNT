@@ -1,4 +1,23 @@
-"""rect_to_tile_coords.py"""
+"""
+This module provides utility functions and methods for navigating a maze 
+and managing the movement of a rect (the position of the game object) within the maze.
+
+Functions:
+    rect_to_maze_coords:
+        Converts the center coordinates of a rectangle to maze tile coordinates.
+    is_snap_within:
+        Checks if the center of a rectangle is within a snapping threshold of a maze node's center.
+    direction_from:
+        Determines the direction from one maze node to another.
+    are_nodes_connected:
+        Checks if a sequence of maze nodes are connected.
+    is_in_path_between:
+        Determines if a rectangle's center is within the path between two maze nodes.
+    _move_to_node:
+        Moves a rect towards a specified maze node by a given distance.
+    move_along_path:
+        Moves a rect along a specified path of maze nodes by a given distance.
+"""
 from collections.abc import Sequence
 
 import pygame as pg

@@ -64,11 +64,28 @@ def empty_path_finder(
 
 class PathListener(Protocol):
     """
-    Protocol for objects that can listen for path updates from the PathDispatcher.
+    PathListener is a protocol that defines the structure for objects
+    capable of listening for path updates from a PathDispatcher.
+    It provides attributes and methods to manage and respond to path changes.
+    
+    Attributes:
+        path (list[MazeNode]):
+            The current path being followed by the listener.
+        new_path (list[MazeNode]):
+            A placeholder for a newly requested path. Defaults to an empty list.
+        waiting_for_path (bool):
+            A flag indicating whether the listener is waiting for a new path. Defaults to False.
 
-    Methods:
-        on_new_path(path: list[MazeNode]) -> None:
-            Called when a new path is provided by the PathDispatcher.
+        halt_current_and_request_new_path (() -> tuple[MazeNode, Optional[MazeNode]]):
+            Halts the current path and requests a new one.
+            
+            Returns the location of the listener 
+            after the path is halted, which can be either a single node or a tuple of two nodes.
+
+            If this is a tuple of one node, it means that the listening object
+            is standing on a node. If this is a tuple of two nodes,
+            it means that the listening object is currently moving
+            from the first node to the second node.
     """
     path: list[MazeNode]
     new_path: list[MazeNode] = []
@@ -78,7 +95,15 @@ class PathListener(Protocol):
         """
         Halt the current path and request a new one.
 
-        Returns the location of the listener after the path is halted.
+        Returns:
+            tuple[MazeNode, Optional[MazeNode]]: The location of the listener
+                after the path is halted.
+
+                If this is a tuple of one node, it means that the listening object
+                is standing on a node.
+
+                If this is a tuple of two nodes, it means that the listening object
+                is currently moving from the first node to the second node.
         """
 
 def pacman_rect_to_location(
@@ -88,8 +113,7 @@ def pacman_rect_to_location(
     Convert the Pacman's position to a location in the maze.
 
     Args:
-        pacman_position (MazeNode): The Pacman's position in the maze.
-        maze_layout (MazeLayout): The maze layout.
+        _pacman_rect (pg.Rect): The rect representing the Pacman's position.
 
     Returns:
         tuple[MazeNode, Optional[MazeNode]]: The location of the Pacman in the maze.
@@ -145,8 +169,7 @@ class PathDispatcher:
         Register a listener for a user.
 
         Args:
-            user (object): The user to register.
-            listener (PathListener): The listener to notify when a new path is forced.
+            listener (PathListener): The listener to be registered.
         """
         self.listeners.add(listener)
 
@@ -157,12 +180,14 @@ class PathDispatcher:
             ) -> None:
         """
         Receive a request for a path from the listener.
-        This method is called by the listener to request a new path.
+
+        This method should be called by the listener (holding the reference to this class instance)
+        to request a new path.
 
         The pathfinding result will be set to the `new_path` attribute of the listener.
 
         Args:
-            user (object): The user requesting the path.
+            listener (PathListener): The listener requesting the path.
             start_node (MazeNode): The starting node for the path.
         """
         def _pathfinding_task() -> None:
@@ -188,6 +213,11 @@ class PathDispatcher:
     def update(self, dt: int) -> None:
         """
         Check if the player is in a new location and update the path if necessary.
+
+        This method should be called periodically to check for player position updates.
+
+        Args:
+            dt (int): The time delta since the last update in milliseconds.
         """
         if self.player_position_update_interval <= 0:
             # Reset the interval
@@ -210,10 +240,11 @@ def build_path_dispatcher(
     pathfinder: Pathfinder = empty_path_finder,
 ) -> PathDispatcher:
     """
-    Build a PathDispatcher for the given maze layout.
+    Build a PathDispatcher for the given maze layout, tracking the given player.
 
     Args:
         maze_layout (MazeLayout): The maze layout to build the dispatcher for.
+        player (pg.sprite.Sprite): The player object to track.
         pathfinder (Pathfinder, optional):
             The pathfinding algorithm to use. Defaults to empty_path_finder.
 

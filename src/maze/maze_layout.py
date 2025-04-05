@@ -1,5 +1,26 @@
 """
-This module defines the Maze class, which represents a maze structure."""
+This module defines the MazeLayout class, which represents the layout and structure of a maze.
+
+The MazeLayout class provides attributes and methods to manage and visualize the maze, 
+including its parts, weights, graph representation, and points of interest.
+
+Classes:
+    MazeLayout:
+        Represents the layout of a maze, including its tiles, weights, points of interest, 
+        and graph structure. Provides methods for calculating surface sizes and drawing 
+        the maze using Pygame.
+        A 2D array representing the type of tile at each position in the maze.
+        A 2D array representing the traversal cost of each tile in the maze.
+        A dictionary mapping specific maze parts to their locations in the maze.
+        A list of nodes representing the graph structure of the maze.
+        A dictionary mapping maze coordinates to their corresponding graph nodes.
+
+Functions:
+    surface_sizes:
+        Calculates the size of the maze surface in pixels based on the tile size.
+    draw_surface:
+        Visualizes the maze as a Pygame surface or draws it directly onto a provided screen.
+"""
 from dataclasses import dataclass, field
 
 import numpy as np

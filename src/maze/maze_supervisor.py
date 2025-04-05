@@ -11,30 +11,38 @@ from .maze_parts import MazePart
 @dataclass
 class MazeLevel:
     """
-    Class representing a level in the maze.
-
+    Represents a level in the maze game, including its layout, spawn points, and entities.
     Attributes:
-        level (int): The level number.
-        description (str): Description of the level.
+        level (int): The current level number.
+        maze_layout (MazeLayout): The layout of the maze for this level.
+        spawn_points (list[MazeCoord]): A list of coordinates where entities can spawn.
+        ghosts (pg.sprite.Group): A group of ghost sprites present in the level.
+        pacman (pg.sprite.Sprite | None): The Pacman sprite for this level, if present.
     """
     level: int
     maze_layout: MazeLayout
     spawn_points: list[MazeCoord]
 
     ghosts: pg.sprite.Group = field(default_factory=pg.sprite.Group)
+    pacman: pg.sprite.Sprite | None = None
 
 def set_up_level(
         screen: pg.Surface,
         level: int,
         ) -> MazeLevel:
     """
-    Set up the maze level.
-
+    Set up the maze level by loading and building the maze layout, and determining spawn points.
+            
     Args:
-        level (int): The level to set up.
+        screen (pg.Surface): The screen surface to draw the maze on.
+        level (int):
+            The level number to set up.
+
+            *There should be a corresponding maze file named `level{level}.txt`
+            in the `assets/levels` folder.*
 
     Returns:
-        None
+        MazeLevel: An object containing the maze layout, level number, and sorted spawn points.
     """
     _maze_layout = load_maze(f"level{level}.txt")
     _maze_layout = build_maze(
@@ -49,18 +57,26 @@ def set_up_level(
         spawn_points=sorted(_spawn_points, key=lambda x: (x.x, x.y)),
     )
 
-def render_maze_level(
+def render_maze_level(     
         maze_level: MazeLevel,
         screen: pg.Surface,
         dt: int, # delta time in milliseconds, the same as `pg.Clock.tick` return value
         ) -> None:
     """
-    Update the maze level along with its ghosts.
+    Render and update the maze level along with its ghosts.
 
-    The player update logic should be handled in the main game loop **else where**.
+    This function is responsible for updating the ghosts' positions and rendering
+    the maze layout and ghosts on the provided screen surface.
+    
+    Note that the player's update logic should be handled separately
+    in the main game loop.
+
+    *(The player update logic should be handled in the main game loop **else where**.)*
 
     Args:
-        mazeLevel (MazeLevel): The maze level to update.
+        maze_level (MazeLevel): The maze level to update and render.
+        screen (pg.Surface): The Pygame surface on which the maze and ghosts will be drawn.
+        dt (int): Delta time in milliseconds, typically the return value of `pg.Clock.tick`.
 
     Returns:
         None

@@ -1,4 +1,18 @@
-"""Maze Node Module."""
+"""
+This module defines the `MazeNode` and `MazeDirection` classes, which are used to represent
+nodes and directions in a maze. These classes provide functionality for navigating and
+describing the structure of a maze.
+
+Classes:
+    MazeDirection (Enum):
+        An enumeration representing the four possible directions in a maze:
+        UP, DOWN, LEFT, and RIGHT.
+        Provides utility methods for string and vector representations of directions.
+    MazeNode (dataclass):
+        Represents a node in a maze, which can be a corner, dead-end, or intersection.
+        Each node has a position in the maze and a set of neighbors representing possible
+        directions to move from this node.
+"""
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Self
@@ -6,7 +20,22 @@ from typing import Self
 from .maze_coord import MazeCoord
 
 class MazeDirection(Enum):
-    """Enum for maze directions."""
+    """
+    MazeDirection is an enumeration that represents the four possible directions
+    in a maze: UP, DOWN, LEFT, and RIGHT.
+    
+    Each direction is associated with a string value and provides utility methods
+    for string representation (and vector representation).
+
+    Attributes:
+        UP (str): Represents the upward direction in the maze.
+        DOWN (str): Represents the downward direction in the maze.
+        LEFT (str): Represents the leftward direction in the maze.
+        RIGHT (str): Represents the rightward direction in the maze.
+    Methods:
+        __str__() -> str:
+            Returns the string representation of the direction.
+    """
     UP = "up"
     DOWN = "down"
     LEFT = "left"
@@ -34,16 +63,19 @@ class MazeDirection(Enum):
 @dataclass
 class MazeNode:
     """
-    Represents a node in a maze, which can be a corner or an intersection. Each node has a position
-    and a set of neighbors that represent the possible directions to move from this node.
+    Represents a node in a maze, which can be a corner, an dead-end, or an intersection.
+    
+    Each node has **a position in the maze** and a set of neighbors that represent
+    the possible directions to move from this node.
+
     Attributes:
         pos (MazeCoord): The position of the node in the maze, represented as a coordinate (x, y).
                          Defaults to (0, 0) if not specified.
-        neighbors (dict[MazeDirection, tuple[Self, int] | None]):
-            A dictionary mapping each possible
-            direction (UP, DOWN, LEFT, RIGHT) to a tuple containing the neighboring node
-            and the cost to move to that neighbor. If there is no neighbor in a direction,
-            the value is None.
+        neighbors (dict[MazeDirection, tuple[Self, int]]):
+            A dictionary mapping the four possible directions (UP, DOWN, LEFT, RIGHT)
+            to a tuple containing the neighboring node and the cost to move to that neighbor.
+            
+            If there is no neighbor in a direction, that direction is omitted from the dictionary.
     Properties:
         x (int): The x-coordinate (column number) of the node's position.
         y (int): The y-coordinate (row number) of the node's position.

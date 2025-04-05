@@ -8,7 +8,7 @@ from .pathfinder import (
     PathfindingResult,
     PathListener, PathDispatcher, build_path_dispatcher
 )
-from .path_finder_template import random_walk_path_finder
+from .random_walk_pathfinder import random_walk_path_finder
 
 __all__ = [
     "Pathfinder",
