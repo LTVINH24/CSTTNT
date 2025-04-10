@@ -67,10 +67,10 @@ def rect_to_maze_coords(
           rectangle as snapped to either the horizontal or vertical grid alignment 
           based on the larger remainder.
     """
-    nearest_tile_x = round(rect.topleft[0] / tile_size)
-    nearest_tile_y = round(rect.topleft[1] / tile_size)
-    x_remainder = rect.topleft[0] - nearest_tile_x * tile_size
-    y_remainder = rect.topleft[1] - nearest_tile_y * tile_size
+    nearest_tile_x = round((rect.topleft[0] - MazeCoord.maze_offset[0]) / tile_size)
+    nearest_tile_y = round((rect.topleft[1] - MazeCoord.maze_offset[1]) / tile_size)
+    x_remainder = rect.topleft[0] - (nearest_tile_x * tile_size + MazeCoord.maze_offset[0])
+    y_remainder = rect.topleft[1] - (nearest_tile_y * tile_size + MazeCoord.maze_offset[1])
     if abs(x_remainder) <= snap_threshold and abs(y_remainder) <= snap_threshold:
         return MazeCoord(nearest_tile_x, nearest_tile_y), None
 
@@ -119,7 +119,7 @@ def find_path_containing_coord(
     if current_coord[1] is None and current_coord[0] in maze_dict:
         return maze_dict[current_coord[0]], None
 
-    start_node: MazeNode
+    start_node: MazeNode | None = None
     end_node: MazeNode | None = None
     if current_coord[1] is None or current_coord[0].y == current_coord[1].y:
         current_left: MazeCoord = min(

@@ -66,10 +66,7 @@ def run_level():
     # pacman setup with random spawn point
     pacman_position = random.choice(maze_level.spawn_points).rect.topleft
     pacman = Player(
-        initial_position= (
-            pacman_position[0] + MazeCoord.maze_offset[0],
-            pacman_position[1] + MazeCoord.maze_offset[1],
-        ),
+        initial_position=pacman_position,
         speed=BASE_SPEED,
     )
     pacman_group = pg.sprite.GroupSingle(pacman)

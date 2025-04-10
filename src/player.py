@@ -21,7 +21,7 @@ class Player(pg.sprite.Sprite):
         self.image = pg.image.load(PLAYER_SPRITE_PATH).convert()
         self.rect = self.image.get_rect()
 
-        self.rect = initial_position
+        self.rect.topleft = initial_position
         self.speed = speed
 
     def move(self, up: bool = False, down: bool = False, left: bool = False, right: bool = False):

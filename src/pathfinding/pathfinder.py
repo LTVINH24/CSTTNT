@@ -175,7 +175,7 @@ class PathDispatcher:
         if self.player.rect is None:
             raise ValueError("Player should have the `rect` attribute.")
         current_player_location = rect_to_path_location(
-            self.player.rect, self.maze_layout.maze_dict, self.maze_layout.maze_shape
+            self.player.rect, self.maze_layout.maze_dict, self.maze_layout.maze_shape()
         )
         if current_player_location is None:
             raise ValueError("Player should be in a valid location.")
@@ -243,7 +243,7 @@ class PathDispatcher:
 
             # Check if the player is in a new location
             new_location = rect_to_path_location(
-                self.player.rect, self.maze_layout.maze_dict, self.maze_layout.maze_shape
+                self.player.rect, self.maze_layout.maze_dict, self.maze_layout.maze_shape()
             )
             if new_location is None:
                 print("Warning: Player should be in a valid location.")
@@ -262,4 +262,3 @@ class PathDispatcher:
         else:
             # Decrease the interval
             self.player_position_update_interval -= dt
-
