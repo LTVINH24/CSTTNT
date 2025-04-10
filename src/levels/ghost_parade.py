@@ -21,7 +21,7 @@ from src.maze import (
     MazeNode, MazeCoord,
     MazeLevel, set_up_level, render_maze_level
 )
-from src.pathfinding import PathDispatcher, build_path_dispatcher, random_walk_path_finder
+from src.pathfinding import PathDispatcher, random_walk_path_finder
 from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
@@ -65,7 +65,7 @@ def run_level():
     )
     pacman_group = pg.sprite.GroupSingle(pacman)
 
-    path_dispatcher = build_path_dispatcher(
+    path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
         pathfinder=random_walk_path_finder,

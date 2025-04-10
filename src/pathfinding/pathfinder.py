@@ -6,7 +6,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pygame as pg
 
-from src.maze import MazeNode, MazeLayout
+from src.maze import (
+  MazeCoord, MazeNode, MazeLayout,
+  rect_to_maze_coords, find_path_containing_coord, path_through_new_location
+)
 
 @dataclass
 class PathfindingResult:
@@ -106,9 +109,11 @@ class PathListener(Protocol):
                 is currently moving from the first node to the second node.
         """
 
-def pacman_rect_to_location(
-        _pacman_rect: pg.Rect,
-    ) -> tuple[MazeNode, Optional[MazeNode]]:
+def rect_to_path_location(
+        rect: pg.Rect,
+        maze_dict: dict[MazeCoord, MazeNode],
+        maze_shape: tuple[int, int]
+    ) -> tuple[MazeNode, MazeNode | None] | None:
     """
     Convert the Pacman's position to a location in the maze.
 
@@ -116,10 +121,14 @@ def pacman_rect_to_location(
         _pacman_rect (pg.Rect): The rect representing the Pacman's position.
 
     Returns:
-        tuple[MazeNode, Optional[MazeNode]]: The location of the Pacman in the maze.
+        out (tuple[MazeNode, Optional[MazeNode]]): The location of the Pacman in the maze.
     """
-    # TODO: Implement the conversion logic
-    return (MazeNode(), None)
+    current_coord = rect_to_maze_coords(rect)
+    return find_path_containing_coord(
+        current_coord=current_coord,
+        maze_dict=maze_dict,
+        maze_shape=maze_shape,
+    )
 
 WORKERS = 4
 PLAYER_POSITION_UPDATE_INTERVAL = 2000  # milliseconds
@@ -150,19 +159,28 @@ class PathDispatcher:
     """
     def __init__(
         self,
-        # TODO: Use proper locking mechanism if you need to modify the graph
-        maze_graph: list[MazeNode],
+        maze_layout: MazeLayout,
         player: pg.sprite.Sprite,
         pathfinder: Pathfinder,
     ):
-        self.maze_graph = maze_graph
+        # TODO: Use proper locking mechanism if you need to modify the graph
+        self.maze_layout = maze_layout
+
         self.player = player
         self.pathfinder = pathfinder
         self.listeners: WeakSet[PathListener] = WeakSet()
         self.executor = ThreadPoolExecutor(max_workers=WORKERS)
 
         self.player_position_update_interval = PLAYER_POSITION_UPDATE_INTERVAL
-        self.previous_player_location = pacman_rect_to_location(self.player.rect)
+        if self.player.rect is None:
+            raise ValueError("Player should have the `rect` attribute.")
+        current_player_location = rect_to_path_location(
+            self.player.rect, self.maze_layout.maze_dict, self.maze_layout.maze_shape
+        )
+        if current_player_location is None:
+            raise ValueError("Player should be in a valid location.")
+        # Class invariant: current_player_location is not None
+        self.previous_player_location = current_player_location
 
     def register_listener(self, listener: PathListener) -> None:
         """
@@ -195,9 +213,9 @@ class PathDispatcher:
             Task to compute the pathfinding result.
             """
             path_result = self.pathfinder(
-                self.maze_graph,
-                start_location,  # Starting location (max-length = 2)
-                pacman_rect_to_location(self.player.rect),  # Pacman's location (max-length = 2)
+                self.maze_layout.maze_graph,  # The maze graph
+                start_location,  # Starting location
+                self.previous_player_location,  # Target location
             )
             listener.new_path = path_result.path
             listener.waiting_for_path = False
@@ -224,35 +242,24 @@ class PathDispatcher:
             self.player_position_update_interval = PLAYER_POSITION_UPDATE_INTERVAL
 
             # Check if the player is in a new location
-            player_location = pacman_rect_to_location(self.player.rect)
-            if player_location != self.previous_player_location:
+            new_location = rect_to_path_location(
+                self.player.rect, self.maze_layout.maze_dict, self.maze_layout.maze_shape
+            )
+            if new_location is None:
+                print("Warning: Player should be in a valid location.")
+                return
+            if new_location != self.previous_player_location:
+                self.previous_player_location = new_location
                 for listener in self.listeners:
-                    # TODO: Check if the listener's current path overlaps ...
-                    # TODO: with the player's new location. If not, request a new path.
-                    listener.halt_current_and_request_new_path()
+                    pass_through_path = path_through_new_location(
+                        checking_path=listener.path,
+                        location=new_location,
+                    )
+                    if pass_through_path is None:
+                        listener.halt_current_and_request_new_path()
+                    else:
+                        listener.new_path = pass_through_path
         else:
             # Decrease the interval
             self.player_position_update_interval -= dt
 
-def build_path_dispatcher(
-    maze_layout: MazeLayout,
-    player: pg.sprite.Sprite,
-    pathfinder: Pathfinder = empty_path_finder,
-) -> PathDispatcher:
-    """
-    Build a PathDispatcher for the given maze layout, tracking the given player.
-
-    Args:
-        maze_layout (MazeLayout): The maze layout to build the dispatcher for.
-        player (pg.sprite.Sprite): The player object to track.
-        pathfinder (Pathfinder, optional):
-            The pathfinding algorithm to use. Defaults to empty_path_finder.
-
-    Returns:
-        PathDispatcher: The built PathDispatcher.
-    """
-    return PathDispatcher(
-        maze_graph=maze_layout.maze_graph,
-        player=player,
-        pathfinder=pathfinder,
-    )

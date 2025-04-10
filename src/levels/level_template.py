@@ -1,10 +1,21 @@
 """
-This module implements the "Ghost Parade" level for a Pacman-like game. It sets up a maze
-with ghosts that increase their speed over time.
+This module serves as a template for setting up and running a level in a Pacman-like game.
 
-Functions:
-    run_level():
-        Runs the maze level with ghosts, handling game logic, rendering, and ghost speed updates.
+It provides the necessary setup for the maze, player (Pacman), ghosts, and pathfinding logic. 
+The module is designed to be used as a reference for creating new levels.
+
+Constants:
+    NUMBER_OF_GHOSTS (int): The number of ghosts to spawn in the level.
+    INITIAL_SPEED_MULTIPLIER (int): The initial speed multiplier for the ghosts.
+    BASE_SPEED (int): The base speed of ghosts in pixels per second.
+    ARBITARY_SCREEN_SIZES (tuple[int, int]): The screen size for the maze layout.
+    LEVEL (int): The level number, used to load the corresponding maze layout file.
+
+Notes:
+- The `path_dispatcher` is initialized with a placeholder pathfinding algorithm 
+  (`random_walk_path_finder`). Replace it with your own pathfinding algorithm for better gameplay.
+- The maze layout is loaded using the `set_up_level` function, which expects a corresponding 
+  level file (e.g., "level_1.txt") in the "assets/levels" directory.    
 """
 import sys
 import random
@@ -21,7 +32,7 @@ from src.maze import (
     MazeNode, MazeCoord,
     MazeLevel, set_up_level, render_maze_level
 )
-from src.pathfinding import PathDispatcher, build_path_dispatcher, random_walk_path_finder
+from src.pathfinding import PathDispatcher, random_walk_path_finder
 from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
@@ -53,7 +64,7 @@ def run_level():
     )
 
     # pacman setup with random spawn point
-    pacman_position = random.choice(maze_level.spawn_points).rect.center
+    pacman_position = random.choice(maze_level.spawn_points).rect.topleft
     pacman = Player(
         initial_position= (
             pacman_position[0] + MazeCoord.maze_offset[0],
@@ -63,7 +74,7 @@ def run_level():
     )
     pacman_group = pg.sprite.GroupSingle(pacman)
 
-    path_dispatcher = build_path_dispatcher(
+    path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
         pathfinder=random_walk_path_finder, # TODO: replace with your own pathfinding algorithm
