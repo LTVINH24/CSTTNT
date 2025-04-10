@@ -3,7 +3,7 @@ Pathfinding Monitor
 
 This module provides a decorator to monitor the pathfinding process.
 """
-# TODO: Remove this import if not needed
+# TODO: Remove this import if not needed, otherwise, remove the pylint disable/enable comments.
 # pylint: disable=unused-import
 import tracemalloc # suggestion for tracing memory usage
 # pylint: enable=unused-import
@@ -24,10 +24,11 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
         result: PathfindingResult = func(*args, **kwargs)
         # TODO: Add actual monitoring logic here
         def print_path(nodes: list[MazeNode]):
+            print("Path: ", end="")
             for node in nodes:
                 print(f"{node} => ", end="")
             print("(end)")
-        print(result.path)
+        print_path(result.path)
         return result
 
     return wrapper

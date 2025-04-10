@@ -121,7 +121,7 @@ def build_maze(
     """
     Build the maze graph and prepare it for rendering.
 
-    Should be call with `load_maze()` to create a complete MazeLayout object.
+    Should be call **after** (and with) `load_maze()` to create a complete MazeLayout object.
 
     ```python
     maze_layout = build_maze(load_maze("level1.txt"))
@@ -150,35 +150,6 @@ def build_maze(
     maze_layout.maze_graph = graphify_maze(maze_layout.maze_weight)
     maze_layout.maze_dict = coordinize_graph(maze_layout.maze_graph)
     return maze_layout
-
-# TODO: Move to `maze_layout.py`
-def is_coord_in_path(
-        maze_map: np.ndarray[np.uint16],
-        maze_dict: dict[MazeCoord, MazeNode],
-        coord: MazeCoord | tuple[int, int]
-        ) -> bool:
-    """
-    Determines if a given coordinate is part of a path in the maze.
-
-    A coordinate is considered part of a path if it is **not a node** and traversable
-    (i.e., not a wall).
-
-    Check if a coordinate falls within a path in the maze, including straight lines.
-
-    Args:
-        maze_map (np.ndarray[np.uint16]): A 2D numpy array representing the maze,
-            where each cell contains a cost value.
-        maze_dict (dict[MazeCoord, MazeNode]): A dictionary mapping coordinates
-            (x, y) to MazeNode objects, representing nodes in the maze.
-        coord (MazeCoord | tuple[int, int]): The coordinate to check, represented as a tuple (x, y).
-
-    Returns:
-        bool: True if the coordinate is part of a path, False otherwise.
-    """
-    if (maze_map[coord[1], coord[0]] < VERY_HIGH_COST and
-        maze_dict.get(coord) is None):
-        return True
-    return False
 
 def graphify_maze(
         tilemap: np.ndarray[np.uint16],
@@ -377,6 +348,34 @@ def _connect_nodes(
                 upper_node.neighbors[MazeDirection.DOWN] = (lower_node, vertical_path_weight)
                 lower_node.neighbors[MazeDirection.UP] = (upper_node, vertical_path_weight)
 
+def _is_coord_in_path(
+        maze_map: np.ndarray[np.uint16],
+        maze_dict: dict[MazeCoord, MazeNode],
+        coord: MazeCoord | tuple[int, int]
+        ) -> bool:
+    """
+    Determines if a given coordinate is part of a path in the maze.
+
+    A coordinate is considered part of a path if it is **not a node** and traversable
+    (i.e., not a wall).
+
+    Check if a coordinate falls within a path in the maze, including straight lines.
+
+    Args:
+        maze_map (np.ndarray[np.uint16]): A 2D numpy array representing the maze,
+            where each cell contains a cost value.
+        maze_dict (dict[MazeCoord, MazeNode]): A dictionary mapping coordinates
+            (x, y) to MazeNode objects, representing nodes in the maze.
+        coord (MazeCoord | tuple[int, int]): The coordinate to check, represented as a tuple (x, y).
+
+    Returns:
+        bool: True if the coordinate is part of a path, False otherwise.
+    """
+    if (maze_map[coord[1], coord[0]] < VERY_HIGH_COST and
+        maze_dict.get(coord) is None):
+        return True
+    return False
+
 LEVEL = 1
 if __name__ == "__main__":
     # pylint: disable=no-member
@@ -401,7 +400,7 @@ if __name__ == "__main__":
                 if (_x, _y) in _maze_dict:
                     # Yellow for nodes
                     return f"\033[93m({_x:2},{_y:2})\033[0m"
-                if is_coord_in_path(main_maze_layout.maze_weight, _maze_dict, (_x, _y)):
+                if _is_coord_in_path(main_maze_layout.maze_weight, _maze_dict, (_x, _y)):
                     # Green for paths
                     return f"\033[92m({_x:2},{_y:2})\033[0m"
                 # Default for non-nodes
