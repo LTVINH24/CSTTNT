@@ -54,7 +54,7 @@ def set_up_level(
     return MazeLevel(
         level=level,
         maze_layout=_maze_layout,
-        spawn_points=sorted(_spawn_points, key=lambda x: (x.x, x.y)),
+        spawn_points=sorted(_spawn_points),
     )
 
 def render_maze_level(

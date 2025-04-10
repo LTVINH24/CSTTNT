@@ -20,7 +20,6 @@ Notes:
 import sys
 import random
 from collections.abc import Iterable, Generator
-from copy import copy
 from time import time_ns
 
 import pygame as pg
@@ -29,7 +28,7 @@ from pygame.locals import QUIT
 # pylint: enable=no-name-in-module
 
 from src.maze import (
-    MazeNode, MazeCoord,
+    MazeCoord,
     MazeLevel, set_up_level, render_maze_level
 )
 from src.pathfinding import PathDispatcher, random_walk_path_finder
@@ -80,7 +79,6 @@ def run_level():
     set_up_ghosts(
         ghost_group=maze_level.ghosts,
         spawn_points=maze_level.spawn_points,
-        spawn_nodes=maze_level.maze_layout.maze_graph,
         path_dispatcher=path_dispatcher,
     )
 
@@ -111,30 +109,27 @@ def run_level():
 def set_up_ghosts(
         ghost_group: pg.sprite.Group,
         spawn_points: list[MazeCoord],
-        spawn_nodes: list[MazeNode],
         path_dispatcher: PathDispatcher = None,
     ) -> None:
     """
     Set up the ghosts in the maze level.
     """
-    spawn_node_picker = random_picker(
-        spawn_nodes,
-        seed=int(time_ns() % 2**32) # Random seed based on time
-    )
     ghost_type_picker = random_picker(
         list(GHOST_TYPES),
         seed=int(time_ns() % 2**32) # Random seed based on time
     )
-    for i in range(NUMBER_OF_GHOSTS):
+    # Optional ghost number limit by the number of spawn points
+    maximum_ghost = min(len(spawn_points), NUMBER_OF_GHOSTS)
+    # Feel free to uncomment the below line if you want to spawn more ghosts than spawn points
+    # maximum_ghost = NUMBER_OF_GHOSTS
+    for i in range(maximum_ghost):
         spawn_point = spawn_points[i % len(spawn_points)]
-        spawn_node = next(spawn_node_picker)
         ghost_type = next(ghost_type_picker)
         _ = Ghost(
             initial_position=spawn_point,
             speed=BASE_SPEED,
             ghost_type=ghost_type,
             ghost_group=ghost_group,
-            initial_node=copy(spawn_node),
             path_dispatcher=path_dispatcher,
         )
 

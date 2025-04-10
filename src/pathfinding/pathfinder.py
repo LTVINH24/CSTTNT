@@ -223,6 +223,10 @@ class PathDispatcher:
         # Submit the pathfinding task to the executor.
         listener.waiting_for_path = True
 
+        if start_location == self.previous_player_location:
+            # The listen is already at the target location
+            return
+
         # TODO: Enable/Disable multithreading for pathfinding here.
         self.executor.submit(_pathfinding_task)
 

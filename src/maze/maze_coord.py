@@ -15,7 +15,7 @@ import pygame as pg
 
 from src.constant import TILE_SIZE
 
-@dataclass
+@dataclass(order=True)
 class MazeCoord(Sequence[int]):
     """
     Represents a coordinate in the maze, acts like `tuple[int, int]`.
