@@ -9,7 +9,7 @@ from .pathfinder import (
     PathListener, PathDispatcher, build_path_dispatcher
 )
 from .random_walk_pathfinder import random_walk_path_finder
-
+from .depth_first_search_pathfinder import depth_first_search_path_finder
 __all__ = [
     "Pathfinder",
     "empty_path_finder",
@@ -18,4 +18,5 @@ __all__ = [
     "PathDispatcher",
     "build_path_dispatcher",
     "random_walk_path_finder",
+    "depth_first_search_path_finder"
 ]
