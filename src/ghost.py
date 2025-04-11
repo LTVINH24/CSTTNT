@@ -15,7 +15,10 @@ import os
 import random
 import pygame as pg
 
-from src.maze import MazeNode, MazeCoord, move_along_path, is_snap_within
+from src.maze import (
+   MazeNode, MazeCoord,
+   rect_to_maze_coords, find_path_containing_coord, move_along_path, is_snap_within
+)
 from src.pathfinding import PathListener, PathDispatcher
 from .constant import IMAGES_PATH
 
@@ -56,7 +59,6 @@ class Ghost(pg.sprite.Sprite, PathListener):
             Handles path traversal and requests new paths when necessary.
     """
 
-    # TODO: Remove the `initial_node` parameter and use `initial_position` instead.
     def __init__(
             self,
             initial_position: MazeCoord,
@@ -64,7 +66,6 @@ class Ghost(pg.sprite.Sprite, PathListener):
             *,
             ghost_type: str | int = None,
             ghost_group: pg.sprite.Group = None,
-            initial_node: MazeNode = MazeNode(),
             path_dispatcher: PathDispatcher = None,
             ):
         if ghost_group is None:
@@ -83,32 +84,57 @@ class Ghost(pg.sprite.Sprite, PathListener):
         self.image = pg.image.load(ghost_sprite_paths[ghost_type]).convert()
         self.ghost_type = ghost_type
 
-        # TODO: Fix the initial position (corresponding to MazeCoord)
         _initial_position = initial_position.rect.topleft
-        _initial_position = initial_node.pos.rect.topleft # Don't doubt about topleft
         self.rect = self.image.get_rect().move(_initial_position)
         self.speed = speed # in pixels per second
 
         # Path related attributes
-
-        # TODO: Infer the path from the initial position, not using the initial node.
-        self.path: list[MazeNode] = [ initial_node ]
+        self.path: list[MazeNode] = []
         self.path_dispatcher = path_dispatcher
+        if path_dispatcher is not None:
+            _initial_path = find_path_containing_coord(
+                rect_to_maze_coords(initial_position.rect),
+                path_dispatcher.maze_layout.maze_dict,
+                path_dispatcher.maze_layout.maze_shape()
+            )
+            if _initial_path is None:
+                raise ValueError(
+                    f"Invalid initial path for ghost at initial position {initial_position}."
+                    )
+            # Invariant: self.path should never be empty,
+            # and should always contain at least one node, in this case it's waiting in a place.
+            self.path = list(
+                _initial_path if _initial_path[1] is not None else (_initial_path[0],)
+                )
 
         # Cumulative delta time for movement update
         self.cumulative_delta_time = 0 # in milliseconds
 
     def halt_current_and_request_new_path(self):
         if len(self.path) == 0:
-            # TODO: Infer the path from the initial position.
-            pass
+            print("Warning: Ghost has no path to follow.")
+            if not self.path_dispatcher:
+                print("-------: No path dispatcher available.")
+                return
+            print("-------: Temporarily calculating a new path.")
+            current_path = find_path_containing_coord(
+                rect_to_maze_coords(self.rect),
+                self.path_dispatcher.maze_layout.maze_dict,
+                self.path_dispatcher.maze_layout.maze_shape()
+            )
+            if current_path is None:
+                print("-------: Fatal error - ghost is not currently in a path.")
+                return
+            self.path = list(
+                current_path if current_path[1] is not None else (current_path[0],)
+            )
         elif is_snap_within(self.rect.center, self.path[0]):
             self.path = self.path[0] # Keep the first node in the path
         else:
             self.path = self.path[:2] # Keep the first two nodes in the path
         self.path_dispatcher.receive_request_for(
             self,
-            tuple(self.path),
+            (self.path[0], self.path[1] if len(self.path) > 1 else None),
             )
 
     def update(self, dt: int) -> None:
@@ -121,7 +147,7 @@ class Ghost(pg.sprite.Sprite, PathListener):
             self.path = self.new_path
             self.new_path = []
         if not self.path or len(self.path) == 0:
-            # TODO: Infer the path from the initial position.
+            print("Warning: Ghost has no path to follow.")
             return
         if len(self.path) <= 1:
             if self.waiting_for_path:

@@ -15,7 +15,7 @@ import pygame as pg
 
 from src.constant import TILE_SIZE
 
-@dataclass
+@dataclass(order=True)
 class MazeCoord(Sequence[int]):
     """
     Represents a coordinate in the maze, acts like `tuple[int, int]`.
@@ -60,11 +60,6 @@ class MazeCoord(Sequence[int]):
         """
         self.x = int(x)  # Ensure x is an integer (e.g., if it's np.uint16)
         self.y = int(y)
-        self._rect = pg.Rect(
-            self.x * MazeCoord.tile_size + MazeCoord.maze_offset[0],
-            self.y * MazeCoord.tile_size + MazeCoord.maze_offset[1],
-            MazeCoord.tile_size, MazeCoord.tile_size
-        )
 
     @property
     def rect(self) -> pg.Rect:
@@ -74,7 +69,11 @@ class MazeCoord(Sequence[int]):
         Returns:
             pg.Rect: A pygame Rect object representing the tile.
         """
-        return pg.Rect(self._rect)
+        return pg.Rect(
+            self.x * MazeCoord.tile_size + MazeCoord.maze_offset[0],
+            self.y * MazeCoord.tile_size + MazeCoord.maze_offset[1],
+            MazeCoord.tile_size, MazeCoord.tile_size
+        )
 
     @property
     def center(self) -> tuple[int, int]:
@@ -84,7 +83,10 @@ class MazeCoord(Sequence[int]):
         Returns:
             (tuple[int, int]): The center coordinates (x, y).
         """
-        return self._rect.center
+        return (
+            self.x * MazeCoord.tile_size + MazeCoord.tile_size // 2 + MazeCoord.maze_offset[0],
+            self.y * MazeCoord.tile_size + MazeCoord.tile_size // 2 + MazeCoord.maze_offset[1]
+        )
 
     def __iter__(self):
         """

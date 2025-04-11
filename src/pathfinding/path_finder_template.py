@@ -1,7 +1,7 @@
 """
 TODO: Provide a reasonable description for your module.
 """
-# TODO: Remove `np` if not used
+# TODO: Remove `np` if not used, otherwise, remove the pylint disable/enable comments.
 # pylint: disable=unused-import
 import numpy as np
 # pylint: enable=unused-import
@@ -10,7 +10,7 @@ from src.maze import MazeNode
 from .pathfinder import Pathfinder, PathfindingResult
 from .pathfinding_monitor import pathfinding_monitor
 
-# TODO: Remove the `-` prefix from the function name and add a proper name.
+# TODO: Remove the `_` prefix from the function parameters and rename the class name.
 @pathfinding_monitor
 def your_path_finder(
     _maze_graph: list[MazeNode],

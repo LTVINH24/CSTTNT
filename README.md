@@ -13,7 +13,7 @@
 - To implement a new pathfinding algorithm:
 
   - Create a function in a new file in the `src/pathfinding` directory (e.g., `depth_first_search_pathfinder.py`), using the `src/pathfinding/path_finder_template.py` as a template.
-  - To add the test level, create a new file in the `src/levels` directory (e.g., `depth_first_search.py`), using the `src/levels/level_template.py` as a template (you only need to change the `path_finder` param in the `build_path_dispatcher` function call).
+  - To add the test level, create a new file in the `src/levels` directory (e.g., `depth_first_search.py`), using the `src/levels/level_template.py` as a template (you only need to change the `path_finder` param in the `PathDispather` initialization call).
 
 - For permormance assessment, you `src/pathfinding/pathfinding_monitor.py` and adjust as you need.
 

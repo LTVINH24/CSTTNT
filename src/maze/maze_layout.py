@@ -62,6 +62,8 @@ class MazeLayout:
             nodes based on their positions in the maze.
 
     Methods:
+        maze_shape:
+            Returns the shape of the maze as a tuple (columns, rows).
         surface_sizes: 
             Returns the size of the maze surface in pixels based on the number of 
             tiles and the tile size.
@@ -77,12 +79,21 @@ class MazeLayout:
     maze_graph: list[MazeNode] = field(default_factory=list)
     maze_dict: dict[MazeCoord, MazeNode] = field(default_factory=dict)
 
+    def maze_shape(self) -> tuple[int, int]:
+        """
+        Get the shape of the maze.
+
+        Returns:
+            (tuple[int, int]): The shape of the maze as (columns, rows).
+        """
+        return self.maze_parts.shape[1], self.maze_parts.shape[0]
+
     def surface_sizes(self, tile_size = TILE_SIZE) -> tuple[int, int]:
         """
         Get the size of the maze surface that would return by `draw_surface`.
 
         Returns:
-            tuple[int, int]: The width and height of the maze surface in pixels.
+            (tuple[int, int]): The width and height of the maze surface in pixels.
         """
         return (self.maze_parts.shape[1] * tile_size, self.maze_parts.shape[0] * tile_size)
 

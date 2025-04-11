@@ -4,7 +4,9 @@ and managing the movement of a rect (the position of the game object) within the
 
 Functions:
     rect_to_maze_coords:
-        Converts the center coordinates of a rectangle to maze tile coordinates.
+        Converts a rectangle's position to maze tile coordinates.
+    find_path_containing_coord:
+        Finds the path containing the current maze coordinates.
     is_snap_within:
         Checks if the center of a rectangle is within a snapping threshold of a maze node's center.
     direction_from:
@@ -17,6 +19,8 @@ Functions:
         Moves a rect towards a specified maze node by a given distance.
     move_along_path:
         Moves a rect along a specified path of maze nodes by a given distance.
+    path_through_new_location:
+        Finds the portion of a path that contains a specified location in a sequence of maze nodes.
 """
 from collections.abc import Sequence
 
@@ -27,20 +31,133 @@ from src.constant import TILE_SIZE, SNAP_THRESHOLD
 from .maze_node import MazeDirection, MazeNode
 from .maze_coord import MazeCoord
 
-def rect_to_maze_coords(rect_center: tuple[int, int]) -> MazeCoord:
+def rect_to_maze_coords(
+    rect: pg.Rect,
+    tile_size: int = MazeCoord.tile_size,
+    snap_threshold: int = SNAP_THRESHOLD
+    ) -> tuple[MazeCoord, MazeCoord | None]:
     """
-    Converts the center coordinates of a rect to maze tile coordinates.
+    Converts a rectangle's position to maze tile coordinates.
+
+    This function takes a rectangle (represented by a `pg.Rect` object) and calculates 
+    the corresponding maze tile coordinates based on the rectangle's top-left position 
+    and the maze's tile size.
+    
+    It also determines if the rectangle is aligned with the 
+    maze grid or if it overlaps multiple tiles.
+
     Args:
-        rect_center (tuple[int, int]): The center coordinates of the rect 
-            to be converted, represented as a tuple of integers (x, y).
+        rect (pg.Rect): A rectangle object whose position is to be converted into 
+            maze tile coordinates.
+        tile_size (int, optional): The size of each maze tile.
+            Defaults to the class variable MazeCoord.tile_size.
+        snap_threshold (int, optional): The maximum allowable offset for a rectangle 
+            to be considered aligned with the maze grid. Defaults to SNAP_THRESHOLD.
+
     Returns:
-        MazeCoord: An object representing the corresponding tile coordinates 
-            in the maze.
+        (tuple[MazeCoord, MazeCoord | None]): A tuple containing:
+    - The primary `MazeCoord` object representing the nearest tile coordinates 
+    - An optional secondary `MazeCoord` object if the rectangle overlaps 
+      with an adjacent tile. If the rectangle is perfectly aligned with a 
+      single tile, this value will be `None`.
+
+    Warnings:
+        - If the rectangle is not aligned with the maze grid both horizontally and 
+          vertically, a warning is printed, and the function attempts to treat the 
+          rectangle as snapped to either the horizontal or vertical grid alignment 
+          based on the larger remainder.
     """
-    return MazeCoord(
-        int(rect_center[0] // MazeCoord.tile_size),
-        int(rect_center[1] // MazeCoord.tile_size)
+    nearest_tile_x = round((rect.topleft[0] - MazeCoord.maze_offset[0]) / tile_size)
+    nearest_tile_y = round((rect.topleft[1] - MazeCoord.maze_offset[1]) / tile_size)
+    x_remainder = rect.topleft[0] - (nearest_tile_x * tile_size + MazeCoord.maze_offset[0])
+    y_remainder = rect.topleft[1] - (nearest_tile_y * tile_size + MazeCoord.maze_offset[1])
+    if abs(x_remainder) <= snap_threshold and abs(y_remainder) <= snap_threshold:
+        return MazeCoord(nearest_tile_x, nearest_tile_y), None
+
+    if abs(x_remainder) <= snap_threshold:
+        return MazeCoord(nearest_tile_x, nearest_tile_y), MazeCoord(
+            nearest_tile_x, nearest_tile_y + 1 if y_remainder > 0 else nearest_tile_y - 1
+            )
+
+    if abs(y_remainder) <= snap_threshold:
+        return MazeCoord(nearest_tile_x, nearest_tile_y), MazeCoord(
+            nearest_tile_x + 1 if x_remainder > 0 else nearest_tile_x - 1, nearest_tile_y
+            )
+
+    print(f"Warning: rect {rect} is not aligned with the maze grid (horizontally AND vertically).")
+    if abs(x_remainder) > abs(y_remainder):
+        print(f"-------: treated {rect} as if it is snapped with the maze grid horizontally.")
+        return MazeCoord(nearest_tile_x, nearest_tile_y), MazeCoord(
+            nearest_tile_x + 1 if x_remainder > 0 else nearest_tile_x - 1, nearest_tile_y
+            )
+    print(f"-------: treated {rect} as if it is snapped with the maze grid vertically.")
+    return MazeCoord(nearest_tile_x, nearest_tile_y), MazeCoord(
+    nearest_tile_x, nearest_tile_y + 1 if y_remainder > 0 else nearest_tile_y - 1
+    )
+
+# pylint: disable=too-many-branches
+def find_path_containing_coord(
+    current_coord: tuple[MazeCoord, MazeCoord | None],
+    maze_dict: dict[MazeCoord, MazeNode],
+    maze_shape: tuple[int, int],
+) -> tuple[MazeNode, MazeNode | None] | None:
+# pylint: enable=too-many-branches
+    """
+    Get the path containing the current maze coordinates.
+
+    Args:
+        current_coord (tuple[MazeCoord, MazeCoord | None]): The current maze coordinates.
+        maze_dict (dict[MazeCoord, MazeNode]): A dictionary mapping maze coordinates to maze nodes.
+        maze_shape (tuple[int, int]): The shape of the maze as (width, height).
+
+    Returns:
+        out (tuple[MazeNode, MazeNode | None] | None):
+            A tuple containing the start and end nodes of the path, or None if no path is found. 
+    """
+    if current_coord[1] is not None and current_coord[0] == current_coord[1]:
+        current_coord = (current_coord[0], None)
+    if current_coord[1] is None and current_coord[0] in maze_dict:
+        return maze_dict[current_coord[0]], None
+
+    start_node: MazeNode | None = None
+    end_node: MazeNode | None = None
+    if current_coord[1] is None or current_coord[0].y == current_coord[1].y:
+        current_left: MazeCoord = min(
+            current_coord, key=lambda coord: coord.x if coord else float('inf')
         )
+        current_right: MazeCoord = max(
+            current_coord, key=lambda coord: coord.x if coord else float('-inf')
+        )
+        while current_left.x >= 0:
+            if current_left in maze_dict:
+                start_node = maze_dict[current_left]
+                break
+            current_left = MazeCoord(current_left.x - 1, current_left.y)
+        while current_right.x <= maze_shape[0] - 1:
+            if current_right in maze_dict:
+                end_node = maze_dict[current_right]
+                break
+            current_right = MazeCoord(current_right.x + 1, current_right.y)
+    if current_coord[1] is None or current_coord[0].x == current_coord[1].x:
+        current_top: MazeCoord = min(
+            current_coord, key=lambda coord: coord.y if coord else float('inf')
+            )
+        current_bottom: MazeCoord = max(
+            current_coord, key=lambda coord: coord.y if coord else float('-inf')
+            )
+        while current_top.y >= 0:
+            if current_top in maze_dict:
+                start_node = maze_dict[current_top]
+                break
+            current_top = MazeCoord(current_top.x, current_top.y - 1)
+        while current_bottom.y <= maze_shape[1] - 1:
+            if current_bottom in maze_dict:
+                end_node = maze_dict[current_bottom]
+                break
+            current_bottom = MazeCoord(current_bottom.x, current_bottom.y + 1)
+    if start_node is not None and end_node is not None:
+        return start_node, end_node
+    return None
 
 def is_snap_within(
         rect_center: tuple[int, int],
@@ -262,3 +379,47 @@ def move_along_path(
             remaining_path = remaining_path[1:]
 
     return remaining_path, rect_center
+
+def path_through_new_location(
+    checking_path: Sequence[MazeNode],
+    location: tuple[MazeNode, MazeNode | None],
+) -> Sequence[MazeNode] | None:
+    """
+    Finds the portion of a path that contains a specified location in a sequence of maze nodes.
+
+    This function checks if a given location (a single node or an edge between two nodes) 
+    exists within the provided path.
+
+    Args:
+        checking_path (Sequence[MazeNode]):
+            The path to search, represented as a sequence of MazeNode objects.
+        location (tuple[MazeNode, MazeNode | None]): The location to find in the path.
+            - If the second element of the tuple is `None`, it represents a single node.
+            - If the tuple contains two nodes, it represents an edge between the two nodes.
+
+    Returns:
+        out (Sequence[MazeNode] | None):
+            A sequence of MazeNode objects representing the portion of the path
+            containing the location. If the location is not found, returns `None`.
+    """
+    if len(checking_path) < 2:
+        return None
+
+    if location[1] is None:
+        # Single node case
+        for index, node in enumerate(checking_path):
+            if node == location[0]:
+                return checking_path[:index + 1]
+    else:
+        # Edge case
+        for index in range(len(checking_path) - 1):
+            if (
+                checking_path[index] == location[0]
+                and checking_path[index + 1] == location[1]
+            ) or (
+                checking_path[index] == location[1]
+                and checking_path[index + 1] == location[0]
+            ):
+                return checking_path[:index + 1]
+
+    return None
