@@ -45,7 +45,7 @@ def depth_first_search_path_finder(
             An object containing the path from the start to the target and any additional metadata.
     """
     starting_node = _start_location[0] if len(_start_location) <= 1 else _start_location[1]
-    target_node = _target_location[0] if len(_target_location) <= 1 else _target_location[1]
+    target_node = _target_location[0] if (len(_target_location) <= 1 or _target_location[1]==None) else _target_location[1]
     stack = [(starting_node,[])]
     visited = set()
     expanded_nodes =[]
@@ -59,6 +59,6 @@ def depth_first_search_path_finder(
             for neighbor, _ in current_node.neighbors.values():
                 if neighbor not in visited:
                     stack.append((neighbor,path + [current_node]))
-    return PathfindingResult([], [expanded_nodes])~
+    return PathfindingResult([], [expanded_nodes])
 
 assert isinstance(depth_first_search_path_finder, Pathfinder)
