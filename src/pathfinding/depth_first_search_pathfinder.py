@@ -15,18 +15,19 @@ from .pathfinding_monitor import pathfinding_monitor
 @pathfinding_monitor
 def depth_first_search_path_finder(
     _maze_graph: list[MazeNode],
-    _start_location: tuple[MazeNode, MazeNode | None],
-    _target_location: tuple[MazeNode, MazeNode | None],
+    start_location: tuple[MazeNode, MazeNode | None],
+    target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
     """
-    Finds a path in a maze graph from a start location to a target location.
+    Finds a path in a maze graph from a start location to a target location using Depth-First Search.
 
-    TODO: Provide a detailed description of the algorithm used for pathfinding.
+    DFS explores as far as possible along each branch before backtracking. It uses a stack to
+    keep track of nodes to be explored, and visits the most recently discovered node first.
     
     Args:
         _maze_graph (list[MazeNode]):
             The graph representation of the maze, where each node represents a position in the maze.
-        _start_location (tuple[MazeNode, MazeNode | None]):
+        start_location (tuple[MazeNode, MazeNode | None]):
             A tuple of one or two MazeNodes.
 
             If this is a tuple of one node, it means that the object is standing on a node.
@@ -35,8 +36,8 @@ def depth_first_search_path_finder(
             from the first node to the second node. In this case, **both nodes should be included
             at the start of the returning path at any order**.
           
-        _target_location (tuple[MazeNode, MazeNode | None]):
-            Similar to **_start_location**, but for the goal location.
+        target_location (tuple[MazeNode, MazeNode | None]):
+            Similar to **start_location**, but for the goal location.
 
             If this is a tuple of two nodes, **both nodes should be included at the end
             of the returning path at any order**.
@@ -44,21 +45,39 @@ def depth_first_search_path_finder(
         PathfindingResult:
             An object containing the path from the start to the target and any additional metadata.
     """
-    starting_node = _start_location[0] if len(_start_location) <= 1 else _start_location[1]
-    target_node = _target_location[0] if (len(_target_location) <= 1 or _target_location[1]==None) else _target_location[1]
-    stack = [(starting_node,[])]
+    print(target_location)
+    start_path = []
+    if len(start_location) > 1 and start_location[1] is not None:
+        starting_node = start_location[1]
+        start_path = [start_location[0]]
+    else:
+        starting_node = start_location[0]
+    target_node = target_location[0]
+    target_second_node = None
+    if len(target_location) > 1 and target_location[1] is not None:
+        target_second_node = target_location[1]
+    
+    stack = [(starting_node, start_path)]
     visited = set()
-    expanded_nodes =[]
+    expanded_nodes = []
     while stack:
-        current_node,path =stack.pop()
-        if current_node == target_node:
-            return PathfindingResult(path + [current_node],expanded_nodes)
+        current_node, path = stack.pop()
+        if current_node == target_node or current_node == target_second_node:
+            final_path = path + [current_node]
+            # if target_node not in final_path:
+            #     final_path.append(target_node)
+            if target_second_node is not None and target_second_node not in final_path:
+                final_path.append(target_second_node)
+            return PathfindingResult(final_path, expanded_nodes)
+        
         if current_node not in visited:
             visited.add(current_node)
             expanded_nodes.append(current_node)
+            
             for neighbor, _ in current_node.neighbors.values():
                 if neighbor not in visited:
-                    stack.append((neighbor,path + [current_node]))
-    return PathfindingResult([], [expanded_nodes])
-
+                    stack.append((neighbor, path + [current_node]))
+    return PathfindingResult([], expanded_nodes)
+    
+   
 assert isinstance(depth_first_search_path_finder, Pathfinder)
