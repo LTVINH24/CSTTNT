@@ -8,6 +8,7 @@ from .pathfinder import (
     PathfindingResult,
     PathListener, PathDispatcher
 )
+from .A_star_pathfinder import a_star_pathfinder
 from .random_walk_pathfinder import random_walk_path_finder
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "PathListener",
     "PathDispatcher",
     "random_walk_path_finder",
+    "a_star_pathfinder",
 ]
