@@ -1,5 +1,5 @@
 """
-This module implements the Breadth First Search (BFS) algorithm for the blue ghost.
+This module implements the Breadth-First Search (BFS) algorithm for the blue ghost.
 """
 
 from collections import deque
@@ -15,9 +15,10 @@ def breadth_first_search_path_finder(
     target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
     """
-    Finds a path in a maze graph from a start location to a target location.
+    Finds a path in a maze graph from a start location to a target location using Breadth-First Search.
 
-    TODO: Provide a detailed description of the algorithm used for pathfinding.
+    BFS explores all neighbors at the present depth before moving on to nodes at the next depth level. 
+    It uses a queue to keep track of nodes to be explored, and visits the earliest discovered node first.
     
     Args:
         maze_graph (list[MazeNode]):
@@ -32,7 +33,7 @@ def breadth_first_search_path_finder(
             at the start of the returning path at any order**.
           
         target_location (tuple[MazeNode, MazeNode | None]):
-            Similar to **_start_location**, but for the goal location.
+            Similar to **start_location**, but for the goal location.
 
             If this is a tuple of two nodes, **both nodes should be included at the end
             of the returning path at any order**.
@@ -43,21 +44,24 @@ def breadth_first_search_path_finder(
 
     print(target_location)
     start_path = []
+    
     if len(start_location) > 1 and start_location[1] is not None:
         starting_node = start_location[1]
-        starting_path = [start_location[0]]
+        start_path = [start_location[0]]
     else:
         starting_node = start_location[0]
     
     target_node = target_location[0]
-    target_second_node = target_location[1] if len(target_location) > 1 else None
+    target_second_node = None
+    if len(target_location) > 1 and target_location[1] is not None:
+        target_second_node = target_location[1]
 
-    queue = [(starting_node, starting_path)]
+    queue = deque([(starting_node, start_path)])
     visited = set()
     expanded_nodes = []
 
     while queue:
-        current_node, path = queue.popLeft()
+        current_node, path = queue.popleft()
         if current_node == target_node or current_node == target_second_node:
             final_path = path + [current_node]
             if target_second_node is not None and target_second_node not in final_path:
