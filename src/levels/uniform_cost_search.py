@@ -30,7 +30,7 @@ from src.maze import (
     MazeLevel, set_up_level, render_maze_level
 )
 from src.pathfinding import PathDispatcher
-from src.pathfinding.uniform_cost_search import ucs_pathfinder
+from src.pathfinding.uniform_cost_search_pathfinder import ucs_pathfinder
 from src.constant import TILE_SIZE
 from src.ghost import Ghost
 from src.player import Player
