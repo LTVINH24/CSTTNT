@@ -9,6 +9,7 @@ from .pathfinder import (
     PathListener, PathDispatcher
 )
 from .random_walk_pathfinder import random_walk_path_finder
+from .breadth_first_search_pathfinder import breadth_first_search_path_finder
 
 __all__ = [
     "Pathfinder",
@@ -17,4 +18,5 @@ __all__ = [
     "PathListener",
     "PathDispatcher",
     "random_walk_path_finder",
+    "breadth_first_search_path_finder",
 ]
