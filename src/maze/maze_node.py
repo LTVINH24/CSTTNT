@@ -139,9 +139,11 @@ class MazeNode:
     def __copy__(self) -> Self:
         """Create a copy of the MazeNode."""
         return MazeNode(MazeCoord.__copy__(self.pos), self.neighbors.copy())
-    def __eq__(self, other:Self) ->bool:
+    
+    def __eq__(self, other:Self) -> bool:
         if isinstance(other,MazeNode):
             return self.pos ==other.pos
         return False
+    
     def __hash__(self) -> int:
         return hash(self.pos)
