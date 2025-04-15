@@ -8,9 +8,10 @@ from .pathfinder import (
     PathfindingResult,
     PathListener, PathDispatcher
 )
+
+from .uniform_cost_search import ucs_pathfinder
 from .random_walk_pathfinder import random_walk_path_finder
 
-from .uniform_cost_search import uniform_cost_search
 __all__ = [
     "Pathfinder",
     "empty_path_finder",
@@ -18,5 +19,6 @@ __all__ = [
     "PathListener",
     "PathDispatcher",
     "random_walk_path_finder",
-    "uniform_cost_search",
+
+    "ucs_pathfinder",
 ]
