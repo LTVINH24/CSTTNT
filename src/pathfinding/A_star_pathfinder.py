@@ -8,10 +8,6 @@ from .pathfinding_monitor import pathfinding_monitor
 def Manhattan_distance(position1, position2):
     return abs(position1[0] - position2[0]) + abs(position1[1] - position2[1])
 
-# Hàm tính khoảng cách Euclidean
-def Euclidean_distance(position1, position2):
-    return ((position1[0] - position2[0])**2 + (position1[1] - position2[1])**2)**0.5
-
 @pathfinding_monitor
 def a_star_pathfinder(
     maze_graph: list[MazeNode],

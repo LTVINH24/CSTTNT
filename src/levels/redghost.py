@@ -50,7 +50,7 @@ def check_collision(ghost, pacman):
 
 def calculate_distance(pos1, pos2):
     """
-    Tính khoảng cách Euclidean giữa hai điểm.
+    Tính khoảng cách Euclidean giữa hai điểm của Pacman và Blinky để đảm bảo không spawn trùng nhau.
     """
     return ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
 
