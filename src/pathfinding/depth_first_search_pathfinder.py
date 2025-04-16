@@ -62,10 +62,8 @@ def depth_first_search_path_finder(
     expanded_nodes = []
     while stack:
         current_node, path = stack.pop()
-        if current_node == target_node or current_node == target_second_node:
+        if current_node == target_node :
             final_path = path + [current_node]
-            # if target_node not in final_path:
-            #     final_path.append(target_node)
             if target_second_node is not None and target_second_node not in final_path:
                 final_path.append(target_second_node)
             return PathfindingResult(final_path, expanded_nodes)
