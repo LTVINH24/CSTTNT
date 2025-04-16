@@ -37,6 +37,7 @@ from src.pathfinding import PathDispatcher, breadth_first_search_path_finder
 from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
+from src.ui.game_over import show_game_over_screen
 
 MIN_GHOST_SPAWN_DISTANCE = 5 * TILE_SIZE # the minimum distance the ghost(s) can be spawned from Pac-Man's position
 NUMBER_OF_GHOSTS = 1 # number of ghosts spawned in the level applying this algorithm 
@@ -71,34 +72,47 @@ def run_level():
     screen = pg.display.set_mode(screen_sizes)
     pg.display.set_caption(f"Level {LEVEL}")
     clock = pg.time.Clock()
+    pacman = None
+    pacman_group = None
+    inky = None  # change the ghost variable corresponding to the level, e.g. (inky, BFS)
+    path_dispatcher = None
 
-    # maze level setup
-    maze_level: MazeLevel = set_up_level(
-        screen = screen,
-        level = LEVEL,
-    )
+    def initialize_level():
+        nonlocal pacman, pacman_group, inky, path_dispatcher
 
-    # pacman setup with random spawn point
-    pacman_spawn = random.choice(maze_level.spawn_points)
-    pacman_position = pacman_spawn.rect.topleft
-    pacman = Player(
-        initial_position = pacman_position,
-        speed = BASE_SPEED,
-    )
-    pacman_group = pg.sprite.GroupSingle(pacman)
+        # maze level setup
+        maze_level: MazeLevel = set_up_level(
+            screen = screen,
+            level = LEVEL,
+        )
 
-    path_dispatcher = PathDispatcher(
-        maze_layout = maze_level.maze_layout,
-        player = pacman,
-        pathfinder = breadth_first_search_path_finder,
-    )
+        # pacman setup with random spawn point
+        pacman_spawn = random.choice(maze_level.spawn_points)
+        pacman_position = pacman_spawn.rect.topleft
 
-    inky = set_up_inky(
-        ghost_group = maze_level.ghosts,
-        spawn_points = maze_level.spawn_points,
-        path_dispatcher = path_dispatcher,
-        pacman_spawn = pacman_spawn
-    )
+        pacman = Player(
+            initial_position = pacman_position,
+            speed = BASE_SPEED,
+        )
+
+        pacman_group = pg.sprite.GroupSingle(pacman)
+
+        path_dispatcher = PathDispatcher(
+            maze_layout = maze_level.maze_layout,
+            player = pacman,
+            pathfinder = breadth_first_search_path_finder,
+        )
+
+        inky = set_up_inky(
+            ghost_group = maze_level.ghosts,
+            spawn_points = maze_level.spawn_points,
+            path_dispatcher = path_dispatcher,
+            pacman_spawn = pacman_spawn
+        )
+
+        return maze_level
+    
+    maze_level = initialize_level()
 
     while True:
         for event in pg.event.get():
@@ -109,8 +123,16 @@ def run_level():
 
         if inky and check_collision(inky, pacman):
             print("Game Over! Inky đã bắt được Pac-Man!")
-            pg.time.wait(1000)  # waiting for 1 second
-            sys.exit()
+
+            screen.fill((0, 0, 0))
+            render_maze_level(maze_level=maze_level, screen=screen, dt=0)
+            pacman_group.draw(screen)
+            choice = show_game_over_screen(screen)
+            if choice =="replay":
+                maze_level = initialize_level()
+                continue
+            elif choice == "exit":
+                sys.exit()
 
         # Refresh the screen
         screen.fill((0, 0, 0))
@@ -170,7 +192,7 @@ def set_up_inky(
     inky = Ghost(
         initial_position = spawn_point,
         speed = BASE_SPEED,
-        ghost_type = "inky",  # Decide ghost type is Inky (blue ghost).
+        ghost_type = "inky",  # Decide the ghost type is Inky (blue ghost).
         ghost_group = ghost_group,
         path_dispatcher = path_dispatcher,
     )
