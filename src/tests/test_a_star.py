@@ -5,7 +5,7 @@ from src.maze import set_up_level, render_maze_level
 from src.player import Player
 from src.ghost import Ghost
 from src.constant import TILE_SIZE
-from src.pathfinding import PathDispatcher, ucs_pathfinder
+from src.pathfinding import PathDispatcher, a_star_pathfinder
 
 def compute_distance(sp1, sp2):
     c1 = sp1.rect.center
@@ -94,13 +94,13 @@ def run_visual_test(test_case: int, simulation_duration=20) -> dict:
     path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=ucs_pathfinder
+        pathfinder=a_star_pathfinder
     )
 
     ghost = Ghost(
         initial_position=ghost_spawn,
         speed=TILE_SIZE * 3,
-        ghost_type="clyde",
+        ghost_type="blinky",
         ghost_group=maze_level.ghosts,
         path_dispatcher=path_dispatcher,
     )
