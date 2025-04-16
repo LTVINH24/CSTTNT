@@ -5,7 +5,7 @@ from src.maze import set_up_level, render_maze_level
 from src.player import Player
 from src.ghost import Ghost
 from src.constant import TILE_SIZE
-from src.pathfinding import PathDispatcher, a_star_pathfinder
+from src.pathfinding import PathDispatcher, depth_first_search_path_finder
 
 def compute_distance(sp1, sp2):
     c1 = sp1.rect.center
@@ -63,7 +63,7 @@ def select_spawn_pair(maze_level, test_case: int):
     return pacman_spawn, ghost_spawn
 
 
-def run_visual_test(test_case: int, simulation_duration=20) -> dict:
+def run_visual_test(test_case: int, simulation_duration=60) -> dict:
     """
     Chạy một test case trực quan với ghost đuổi Pac-Man.
       - test_case: số thứ tự test (1 đến 5) để chọn cấu hình spawn của Pac-Man và Ghost.
@@ -89,18 +89,18 @@ def run_visual_test(test_case: int, simulation_duration=20) -> dict:
     pacman = Player(initial_position=pacman_spawn.rect.topleft, speed=TILE_SIZE * 2)
     pacman_group = pg.sprite.GroupSingle(pacman)
 
-    # Tạo đối tượng path dispatcher với thuật toán A_star.
-    # Chú ý: đối tượng này sẽ lưu các số liệu thật sau mỗi lần gọi A_star vào thuộc tính last_stats.
+    # Tạo đối tượng path dispatcher với thuật toán DFS.
+    # Chú ý: đối tượng này sẽ lưu các số liệu thật sau mỗi lần gọi DFS vào thuộc tính last_stats.
     path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=a_star_pathfinder
+        pathfinder=depth_first_search_path_finder 
     )
 
     ghost = Ghost(
         initial_position=ghost_spawn,
-        speed=TILE_SIZE * 3,
-        ghost_type="blinky",
+        speed=TILE_SIZE * 4,
+        ghost_type="pinky",
         ghost_group=maze_level.ghosts,
         path_dispatcher=path_dispatcher,
     )
@@ -118,7 +118,7 @@ def run_visual_test(test_case: int, simulation_duration=20) -> dict:
         screen.fill((0, 0, 0))
         render_maze_level(maze_level, screen, dt)
         pacman_group.draw(screen)
-        ghost.update(dt)  # Trong ghost.update, path_dispatcher sẽ gọi A_star và cập nhật last_stats
+        ghost.update(dt)  # Trong ghost.update, path_dispatcher sẽ gọi DFS và cập nhật last_stats
         maze_level.ghosts.draw(screen)
         
         pg.display.flip()
@@ -136,7 +136,7 @@ def run_visual_test(test_case: int, simulation_duration=20) -> dict:
 
     pg.quit()
 
-    # Lấy số liệu thực từ đối tượng path_dispatcher (đã được cập nhật bởi quá trình gọi A_star)
+    # Lấy số liệu thực từ đối tượng path_dispatcher (đã được cập nhật bởi quá trình gọi BFS)
     stats = getattr(path_dispatcher, 'last_stats', {})
     search_time = stats.get('search_time', 0)
     memory_peak = stats.get('memory_peak', 0)
@@ -158,7 +158,7 @@ def print_statistics_table(stats_list):
     print("-" * 90)
     
     for stats in stats_list:
-        # Định dạng các giá trị cho bảng
+        # Format search time specifically with 6 decimal places
         formatted_values = [
             stats["Test Case"],
             stats["Collision"],

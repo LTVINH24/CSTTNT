@@ -3,15 +3,14 @@ TODO: Provide a reasonable description for your module.
 """
 # TODO: Remove `np` if not used
 # pylint: disable=unused-import
-import numpy as np
-# pylint: enable=unused-import
+import time
+import tracemalloc
 from src.maze import MazeNode
 from src.maze import MazeDirection
 
 from .pathfinder import Pathfinder, PathfindingResult
 from .pathfinding_monitor import pathfinding_monitor
 
-# TODO: Remove the `-` prefix from the function name and add a proper name.
 @pathfinding_monitor
 def depth_first_search_path_finder(
     _maze_graph: list[MazeNode],
@@ -45,7 +44,10 @@ def depth_first_search_path_finder(
         PathfindingResult:
             An object containing the path from the start to the target and any additional metadata.
     """
-    print(target_location)
+     # Bắt đầu theo dõi bộ nhớ và thời gian
+    tracemalloc.start()
+    start_time = time.time()
+    
     start_path = []
     if len(start_location) > 1 and start_location[1] is not None:
         starting_node = start_location[1]
@@ -57,15 +59,49 @@ def depth_first_search_path_finder(
     if len(target_location) > 1 and target_location[1] is not None:
         target_second_node = target_location[1]
     
+    # Kiểm tra nếu đã ở điểm đích
+    if starting_node == target_node:
+        final_path = start_path + [starting_node]
+        if target_second_node is not None and target_second_node not in final_path:
+            final_path.append(target_second_node)
+            
+        # Lấy thông tin bộ nhớ và thời gian
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        end_time = time.time()
+        
+        # Lưu thống kê
+        depth_first_search_path_finder.last_stats = {
+            'search_time': end_time - start_time,
+            'memory_peak': peak,
+            'expanded_nodes': 1
+        }
+        
+        return PathfindingResult(final_path, [starting_node])
+    
     stack = [(starting_node, start_path)]
     visited = set()
     expanded_nodes = []
+    
     while stack:
         current_node, path = stack.pop()
-        if current_node == target_node :
+        if current_node == target_node:
             final_path = path + [current_node]
             if target_second_node is not None and target_second_node not in final_path:
                 final_path.append(target_second_node)
+                
+            # Lấy thông tin bộ nhớ và thời gian
+            _, peak = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            end_time = time.time()
+            
+            # Lưu thống kê
+            depth_first_search_path_finder.last_stats = {
+                'search_time': end_time - start_time,
+                'memory_peak': peak,
+                'expanded_nodes': len(expanded_nodes)
+            }
+            
             return PathfindingResult(final_path, expanded_nodes)
         
         if current_node not in visited:
@@ -75,6 +111,20 @@ def depth_first_search_path_finder(
             for neighbor, _ in current_node.neighbors.values():
                 if neighbor not in visited:
                     stack.append((neighbor, path + [current_node]))
+    
+    # Nếu không tìm được đường đi
+    # Lấy thông tin bộ nhớ và thời gian
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    end_time = time.time()
+    
+    # Lưu thống kê
+    depth_first_search_path_finder.last_stats = {
+        'search_time': end_time - start_time,
+        'memory_peak': peak,
+        'expanded_nodes': len(expanded_nodes)
+    }
+    
     return PathfindingResult([], expanded_nodes)
     
    

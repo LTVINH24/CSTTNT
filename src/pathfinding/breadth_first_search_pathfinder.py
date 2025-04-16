@@ -3,6 +3,8 @@ This module implements the Breadth-First Search (BFS) algorithm for the blue gho
 """
 
 from collections import deque
+import time
+import tracemalloc
 from src.maze import MazeNode
 from src.maze import MazeDirection
 from .pathfinder import Pathfinder, PathfindingResult
@@ -19,30 +21,11 @@ def breadth_first_search_path_finder(
 
     BFS explores all neighbors at the present depth before moving on to nodes at the next depth level. 
     It uses a queue to keep track of nodes to be explored, and visits the earliest discovered node first.
-    
-    Args:
-        maze_graph (list[MazeNode]):
-            The graph representation of the maze, where each node represents a position in the maze.
-        start_location (tuple[MazeNode, MazeNode | None]):
-            A tuple of one or two MazeNodes.
-
-            If this is a tuple of one node, it means that the object is standing on a node.
-
-            If this is a tuple of two nodes, it means that the object is currently moving
-            from the first node to the second node. In this case, **both nodes should be included
-            at the start of the returning path at any order**.
-          
-        target_location (tuple[MazeNode, MazeNode | None]):
-            Similar to **start_location**, but for the goal location.
-
-            If this is a tuple of two nodes, **both nodes should be included at the end
-            of the returning path at any order**.
-    Returns:
-        PathfindingResult:
-            An object containing the path from the start to the target and any additional metadata.
     """
+    # Bắt đầu theo dõi bộ nhớ và thời gian
+    tracemalloc.start()
+    start_time = time.time()
 
-    print(target_location)
     start_path = []
     
     if len(start_location) > 1 and start_location[1] is not None:
@@ -56,6 +39,26 @@ def breadth_first_search_path_finder(
     if len(target_location) > 1 and target_location[1] is not None:
         target_second_node = target_location[1]
 
+    # Kiểm tra nếu đã ở đích
+    if starting_node == target_node:
+        final_path = start_path + [starting_node]
+        if target_second_node is not None and target_second_node not in final_path:
+            final_path.append(target_second_node)
+            
+        # Lấy thông tin bộ nhớ và thời gian
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        end_time = time.time()
+        
+        # Lưu thống kê
+        breadth_first_search_path_finder.last_stats = {
+            'search_time': end_time - start_time,
+            'memory_peak': peak,
+            'expanded_nodes': 1
+        }
+        
+        return PathfindingResult(final_path, [starting_node])
+
     queue = deque([(starting_node, start_path)])
     visited = set()
     expanded_nodes = []
@@ -67,6 +70,19 @@ def breadth_first_search_path_finder(
             
             if target_second_node is not None and target_second_node not in final_path:
                 final_path.append(target_second_node)
+                
+            # Lấy thông tin bộ nhớ và thời gian
+            _, peak = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            end_time = time.time()
+            
+            # Lưu thống kê
+            breadth_first_search_path_finder.last_stats = {
+                'search_time': end_time - start_time,
+                'memory_peak': peak,
+                'expanded_nodes': len(expanded_nodes)
+            }
+            
             return PathfindingResult(final_path, expanded_nodes)
         
         if current_node not in visited:
@@ -76,6 +92,19 @@ def breadth_first_search_path_finder(
             for neighbor, _ in current_node.neighbors.values():
                 if neighbor not in visited:
                     queue.append((neighbor, path + [current_node]))
+
+    # Nếu không tìm được đường đi
+    # Lấy thông tin bộ nhớ và thời gian
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    end_time = time.time()
+    
+    # Lưu thống kê
+    breadth_first_search_path_finder.last_stats = {
+        'search_time': end_time - start_time,
+        'memory_peak': peak,
+        'expanded_nodes': len(expanded_nodes)
+    }
 
     return PathfindingResult([], expanded_nodes)
 
