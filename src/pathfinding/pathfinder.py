@@ -21,7 +21,7 @@ class PathfindingResult:
             The sequence of nodes representing the path from the start to the goal.
         expanded_nodes (list[MazeNode]):
             The list of nodes that were expanded during the pathfinding process.
-"""
+    """
     path: list[MazeNode]
     expanded_nodes: list[MazeNode]
 
@@ -219,6 +219,10 @@ class PathDispatcher:
             )
             listener.new_path = path_result.path
             listener.waiting_for_path = False
+            
+            # Store the last statistics from the pathfinder
+            if hasattr(self.pathfinder, 'last_stats'):
+                self.last_stats = self.pathfinder.last_stats
             # Return None
         # Submit the pathfinding task to the executor.
         listener.waiting_for_path = True

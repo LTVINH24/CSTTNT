@@ -34,22 +34,28 @@ from src.ghost import Ghost
 from src.player import Player
 
 NUMBER_OF_GHOSTS = 1
-INITIAL_SPEED_MULTIPLIER = 4  # Hệ số tốc độ ban đầu của ma
-BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # Tốc độ cơ bản tính bằng pixels/giây
+# GIẢM TỐC ĐỘ GHOST ĐỂ TRÁNH OVERSHOOT
+INITIAL_SPEED_MULTIPLIER = 3  # Giảm từ 4 xuống 3
+BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER
 MIN_GHOST_SPAWN_DISTANCE = 5 * TILE_SIZE
-ARBITARY_SCREEN_SIZES = (800, 600)  # Kích thước màn hình tùy ý cho bố cục mê cung
-LEVEL = 1  # Tạo file "level_.txt" của riêng bạn trong thư mục "assets/levels"
+ARBITARY_SCREEN_SIZES = (800, 600)
+LEVEL = 1
+
 
 def check_collision(ghost, pacman):
-    # Dùng hàm va chạm có sẵn của Pygame để kiểm tra va chạm giữa ma và Pacman
+    """
+    Cải thiện chức năng kiểm tra va chạm với ngưỡng chính xác hơn.
+    Trả về True nếu có va chạm, False nếu không.
+    """
     distance = calculate_distance(ghost.rect.center, pacman.rect.center)
-    return distance < (TILE_SIZE * 0.6)  # Adjust threshold as needed
+    return distance < (TILE_SIZE *0.2)
 
-def calculate_distance(pos1, pos2):
+
+def calculate_distance(position1, position2):
     """
-    Tính khoảng cách Euclidean giữa hai điểm của Pacman và Blinky để đảm bảo không spawn trùng nhau.
+    Tính khoảng cách Euclidean giữa hai điểm.
     """
-    return ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
+    return abs(position1[0] - position2[0]) + abs(position1[1] - position2[1])
 
 def run_level():
     """
@@ -82,7 +88,7 @@ def run_level():
     path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=a_star_pathfinder  # Sử dụng thuật toán A* để tìm đường
+        pathfinder=a_star_pathfinder
     )
 
     blinky = set_up_blinky(
@@ -92,18 +98,28 @@ def run_level():
         pacman_spawn=pacman_spawn
     )
 
+    # Cài đặt font cho debug text
+    font = pg.font.Font(None, 20)
+    show_debug = True  # Bật/tắt thông tin debug
+
     while True:
         for event in pg.event.get():
             if event.type == QUIT:
+                pg.quit()
                 sys.exit()
+            elif event.type == pg.KEYDOWN:
+                if event.key == pg.K_d:  # Nhấn D để bật/tắt debug
+                    show_debug = not show_debug
 
         delta_time = clock.tick(60)  # Tính bằng ms
 
         # Kiểm tra va chạm giữa Blinky và Pacman
         if blinky and check_collision(blinky, pacman):
             print("Game Over! Blinky đã bắt được Pacman!")
-            pg.time.wait(1000)  # Đợi 1 giây
+            pg.time.wait(1000)
+            pg.quit()
             sys.exit() 
+
         # Làm mới màn hình
         screen.fill((0, 0, 0))
 
@@ -113,10 +129,37 @@ def run_level():
             screen=screen,
             dt=delta_time,
         )
+        
         # Vẽ pacman
         pacman_group.draw(screen)
+        
         # Cập nhật path dispatcher
         path_dispatcher.update(dt=delta_time)
+
+        # THÊM: Hiển thị đường đi và thông tin debug
+        if show_debug and blinky and hasattr(blinky, 'path') and blinky.path:
+            # Vẽ đường đi
+            for i in range(len(blinky.path) - 1):
+                if i < len(blinky.path)-1:
+                    pg.draw.line(screen, (255, 0, 255), 
+                                blinky.path[i].pos.center, 
+                                blinky.path[i+1].pos.center, 2)
+            
+            # Vẽ các node trong đường đi
+            for i, node in enumerate(blinky.path):
+                # Vẽ node dưới dạng hình tròn màu vàng
+                pg.draw.circle(screen, (255, 255, 0), node.pos.center, 6)
+            
+            # Vẽ đường từ Blinky đến nút tiếp theo
+            if len(blinky.path) > 0:
+                pg.draw.line(screen, (255, 255, 0), 
+                            blinky.rect.center, 
+                            blinky.path[0].pos.center, 2)
+           
+            # Hiển thị khoảng cách đến Pacman
+            pacman_dist = calculate_distance(blinky.rect.center, pacman.rect.center)
+            dist_text = font.render(f"To Pacman: {pacman_dist:.1f}", True, (255, 255, 255))
+            screen.blit(dist_text, (blinky.rect.center[0], blinky.rect.center[1] - 40))
 
         # Cập nhật màn hình
         pg.display.flip()
@@ -126,7 +169,7 @@ def set_up_blinky(
         spawn_points: list[MazeCoord],
         path_dispatcher: PathDispatcher = None,
         pacman_spawn: MazeCoord = None,
-    ) -> None:
+    ) -> Ghost:
     """
     Thiết lập ma đỏ (Blinky) trong mê cung.
     """
@@ -145,20 +188,21 @@ def set_up_blinky(
     # Nếu không có điểm hợp lệ, chọn từ tất cả các điểm (trừ điểm của Pacman)
     if not valid_spawn_points:
         valid_spawn_points = [p for p in spawn_points if p != pacman_spawn]
-        print("Cảnh báo: Không tìm thấy điểm spawn đủ xa cho Clyde!")
+        print("Cảnh báo: Không tìm thấy điểm spawn đủ xa cho Blinky!")
     
     # Nếu vẫn không có điểm nào, dùng tất cả các điểm
     if not valid_spawn_points:
         valid_spawn_points = spawn_points
         print("Cảnh báo: Buộc phải dùng tất cả các điểm spawn!")
+    
     # Chọn điểm xuất hiện ngẫu nhiên cho Blinky
     spawn_point = random.choice(valid_spawn_points)
     
-    # Tạo ma đỏ (Blinky) - luôn sử dụng ghost_type="blinky" cho ma đỏ
+    # Tạo ma đỏ (Blinky)
     blinky = Ghost(
         initial_position=spawn_point,
         speed=BASE_SPEED,
-        ghost_type="blinky",  # Chỉ định loại ma là Blinky (ma đỏ)
+        ghost_type="blinky",
         ghost_group=ghost_group,
         path_dispatcher=path_dispatcher,
     )
@@ -169,6 +213,7 @@ def set_up_blinky(
     if pacman_spawn:
         distance = calculate_distance(spawn_point.rect.center, pacman_spawn.rect.center)
         print(f"Distance between Pacman and Blinky: {distance/TILE_SIZE:.2f} tiles")
+    
     return blinky
 
 def random_picker[T](items: Iterable[T], seed=None) -> Generator[T, None, None]:

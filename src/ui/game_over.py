@@ -38,7 +38,7 @@ def show_game_over_screen(screen, message = "The ghost has caught you!"):
     waiting = True
     while waiting:
         for event in pg.event.get():
-            if event.type == pg.QUIT:
+            if event.type ==pg.QUIT:
                 pg.quit()
                 sys.exit()
             if event.type == pg.MOUSEBUTTONDOWN:
