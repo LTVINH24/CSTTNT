@@ -136,10 +136,10 @@ def a_star_pathfinder(
     if best_node != start_node:
         print("Best node found:", best_node)
         path = reconstruct_path(came_from, id(best_node), node_lookup)
-        # Đảm bảo đường đi không vượt qua target node
-        target_index = next((i for i, node in enumerate(path) if node == target_node), -1)
-        if target_index != -1:
-            path = path[:target_index + 1]  # Dừng lại ngay khi Pac-Man được đạt
+        # # Đảm bảo đường đi không vượt qua target node
+        # target_index = next((i for i, node in enumerate(path) if node == target_node), -1)
+        # if target_index != -1:
+        #     path = path[:target_index + 1]  # Dừng lại ngay khi Pac-Man được đạt
         return PathfindingResult(path, expanded_nodes)
         
     return PathfindingResult([start_node], expanded_nodes)
