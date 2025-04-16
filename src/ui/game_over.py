@@ -1,7 +1,7 @@
 import sys
 import pygame as pg
 
-def show_game_over_screen(screen,message ="The ghost has caught you!"):
+def show_game_over_screen(screen, message = "The ghost has caught you!"):
     screen_sizes =screen.get_size()
 
     overlay = pg.Surface((screen_sizes[0], screen_sizes[1]), pg.SRCALPHA)
@@ -23,11 +23,9 @@ def show_game_over_screen(screen,message ="The ghost has caught you!"):
     replay_button = pg.Rect(0,0,150,50)
     replay_button.center = (screen_sizes[0] //2 - 100,screen_sizes[1] //2 + 80 )
 
-
     exit_text = button_font.render("Exit", True, (255, 255, 255))
     exit_button = pg.Rect(0,0,150,50)
     exit_button.center = (screen_sizes[0] //2 + 100,screen_sizes[1] //2 + 80 )
-
 
     pg.draw.rect(screen,(50,150,50),replay_button,border_radius=10)
     pg.draw.rect(screen,(150,50,50),exit_button,border_radius=10)
@@ -50,7 +48,7 @@ def show_game_over_screen(screen,message ="The ghost has caught you!"):
                 elif exit_button.collidepoint(mouse_pos):
                     return "exit"
             elif event.type == pg.KEYDOWN:
-                if event.key ==pg.K_r:
+                if event.key == pg.K_r:
                     return "replay"
-                elif event.key ==pg.K_ESCAPE:
+                elif event.key == pg.K_ESCAPE:
                     return "exit"
