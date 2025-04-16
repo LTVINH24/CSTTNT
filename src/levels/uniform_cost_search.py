@@ -34,6 +34,7 @@ from src.pathfinding.uniform_cost_search_pathfinder import ucs_pathfinder
 from src.constant import TILE_SIZE
 from src.ghost import Ghost
 from src.player import Player
+from src.ui.game_over import show_game_over_screen
 
 NUMBER_OF_GHOSTS = 1
 INITIAL_SPEED_MULTIPLIER = 4  # Hệ số tốc độ ban đầu của ma
@@ -65,34 +66,39 @@ def run_level():
     pg.display.set_caption(f"Clyde (UCS) - Level {LEVEL}")
     clock = pg.time.Clock()
 
-    # Thiết lập cấp độ mê cung
-    maze_level: MazeLevel = set_up_level(
-        screen=screen,
-        level=LEVEL,
-    )
+    pacman = None
+    pacman_group = None
+    clyde = None  # Thay bằng tên ghost trong level
+    path_dispatcher = None
+    def initialize_level():
+        nonlocal pacman, pacman_group, clyde, path_dispatcher
+        maze_level: MazeLevel = set_up_level(
+            screen=screen,
+            level=LEVEL,
+        )
+        pacman_spawn = random.choice(maze_level.spawn_points)
+        pacman_position = pacman_spawn.rect.topleft
 
-    # Thiết lập pacman với điểm xuất hiện ngẫu nhiên
-    pacman_spawn = random.choice(maze_level.spawn_points)
-    pacman_position = pacman_spawn.rect.topleft
-    pacman = Player(
-        initial_position=pacman_position,
-        speed=BASE_SPEED,
-    )
-    pacman_group = pg.sprite.GroupSingle(pacman)
-    print(f"Pacman spawned at position: {pacman_spawn.rect.center}")
+        pacman = Player(
+            initial_position=pacman_position,
+            speed=BASE_SPEED,
+        )
+        pacman_group = pg.sprite.GroupSingle(pacman)
+        path_dispatcher = PathDispatcher(
+            maze_layout=maze_level.maze_layout,
+            player=pacman,
+            pathfinder=ucs_pathfinder, # TODO: replace with your own pathfinding algorithm
+        )
+        clyde = set_up_clyde(   #thay bằng tên ghost trong level
+            ghost_group=maze_level.ghosts,
+            spawn_points=maze_level.spawn_points,
+            path_dispatcher=path_dispatcher,
+            pacman_spawn=pacman_spawn
+        )
+        return maze_level
 
-    path_dispatcher = PathDispatcher(
-        maze_layout=maze_level.maze_layout,
-        player=pacman,
-        pathfinder=ucs_pathfinder  # Sử dụng thuật toán UCS để tìm đường
-    )
-
-    clyde = set_up_clyde(
-        ghost_group=maze_level.ghosts,
-        spawn_points=maze_level.spawn_points,
-        path_dispatcher=path_dispatcher,
-        pacman_spawn=pacman_spawn  # Truyền vị trí spawn của Pacman để tránh
-    )
+    # maze level setup
+    maze_level = initialize_level()
 
     while True:
         for event in pg.event.get():
@@ -103,8 +109,17 @@ def run_level():
 
         # Kiểm tra va chạm giữa Clyde và Pacman
         if clyde and check_collision(clyde, pacman):
-            pg.time.wait(1000)  # Đợi 1 giây
-            sys.exit() 
+            print("Game Over! Clyde đã bắt được Pacman!")
+            pg.time.wait(5)
+            screen.fill((0, 0, 0))
+            render_maze_level(maze_level=maze_level, screen=screen, dt=0)
+            pacman_group.draw(screen)
+            choice = show_game_over_screen(screen)
+            if choice =="replay":
+                maze_level = initialize_level()
+                continue
+            elif choice == "exit":
+                sys.exit()
         
         # Làm mới màn hình
         screen.fill((0, 0, 0))

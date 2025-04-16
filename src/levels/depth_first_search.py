@@ -110,7 +110,7 @@ def run_level():
         delta_time = clock.tick(60) # in ms
         if pinky and check_collision(pinky, pacman):
             print("Game Over! Pinky đã bắt được Pacman!")
-            
+            pg.time.wait(5)
             screen.fill((0, 0, 0))
             render_maze_level(maze_level=maze_level, screen=screen, dt=0)
             pacman_group.draw(screen)

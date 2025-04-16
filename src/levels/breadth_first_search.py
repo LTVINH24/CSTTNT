@@ -123,7 +123,7 @@ def run_level():
 
         if inky and check_collision(inky, pacman):
             print("Game Over! Inky đã bắt được Pac-Man!")
-
+            pg.time.wait(5)
             screen.fill((0, 0, 0))
             render_maze_level(maze_level=maze_level, screen=screen, dt=0)
             pacman_group.draw(screen)
