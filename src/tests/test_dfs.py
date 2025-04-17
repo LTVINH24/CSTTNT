@@ -173,7 +173,7 @@ def main():
     all_stats = []
     for test in range(1, 6):
         print(f"\nĐang chạy Test Case {test} ")
-        stats = run_visual_test(test_case=test, simulation_duration=20)
+        stats = run_visual_test(test_case=test, simulation_duration=60)
         all_stats.append(stats)
         print(f"Test Case {test} hoàn tất. Chuyển sang test case tiếp theo trong 2 giây...")
         time.sleep(2)

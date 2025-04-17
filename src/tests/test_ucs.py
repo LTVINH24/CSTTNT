@@ -63,7 +63,7 @@ def select_spawn_pair(maze_level, test_case: int):
     return pacman_spawn, ghost_spawn
 
 
-def run_visual_test(test_case: int, simulation_duration=20) -> dict:
+def run_visual_test(test_case: int, simulation_duration=60) -> dict:
     """
     Chạy một test case trực quan với ghost đuổi Pac-Man.
       - test_case: số thứ tự test (1 đến 5) để chọn cấu hình spawn của Pac-Man và Ghost.
@@ -99,7 +99,7 @@ def run_visual_test(test_case: int, simulation_duration=20) -> dict:
 
     ghost = Ghost(
         initial_position=ghost_spawn,
-        speed=TILE_SIZE * 3,
+        speed=TILE_SIZE * 4,
         ghost_type="clyde",
         ghost_group=maze_level.ghosts,
         path_dispatcher=path_dispatcher,
