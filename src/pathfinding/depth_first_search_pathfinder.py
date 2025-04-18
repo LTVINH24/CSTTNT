@@ -9,7 +9,7 @@ from .pathfinding_monitor import pathfinding_monitor
 
 @pathfinding_monitor
 def depth_first_search_path_finder(
-    _maze_graph: list[MazeNode],
+    _: list[MazeNode],
     start_location: tuple[MazeNode, MazeNode | None],
     target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
@@ -78,7 +78,7 @@ def depth_first_search_path_finder(
             for neighbor, _ in current_node.neighbors.values():
                 if neighbor not in visited:
                     stack.append((neighbor, path + [current_node]))
-                        
+
     return PathfindingResult([], expanded_nodes)
 
 assert isinstance(depth_first_search_path_finder, Pathfinder)

@@ -11,6 +11,7 @@ from .pathfinding_monitor import pathfinding_monitor
 
 @pathfinding_monitor
 def breadth_first_search_path_finder(
+    _: list[MazeNode],
     start_location: tuple[MazeNode, MazeNode | None],
     target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
