@@ -14,53 +14,67 @@ def compute_distance(sp1, sp2):
 
 def select_spawn_pair(maze_level, test_case: int):
     """
-    Chọn cặp spawn (cho Pac-Man và Ghost) dựa theo khoảng cách giữa các spawn point,
-    với các test case:
-      1. Test 1: cặp có khoảng cách nhỏ nhất (gần nhau).
-      2. Test 2: cặp có khoảng cách lớn nhất (xa nhau).
-      3. Test 3: cặp có khoảng cách trung vị.
-      4. Test 4: cặp có khoảng cách nhỏ thứ hai.
-      5. Test 5: chọn theo quy tắc riêng: Pac-Man spawn tại spawn có tọa độ x nhỏ nhất,
-         Ghost spawn tại spawn có tọa độ x lớn nhất.
+    Chọn cặp spawn cho Pac-Man và Ghost dựa trên các test case:
+      1. Khoảng cách nhỏ nhất (Euclidean).
+      2. Khoảng cách lớn nhất (Euclidean).
+      3. Chênh lệch X nhỏ nhất: hai spawn gần nhau về phương ngang nhất.
+      4. Khoảng cách nhỏ thứ hai (Euclidean).
+      5. Dựa trên toạ độ Y: Pac-Man ở spawn có Y nhỏ nhất (cao nhất trên màn hình),
+         Ghost ở spawn có Y lớn nhất (thấp nhất trên màn hình).
     """
     spawn_points = maze_level.spawn_points
     n = len(spawn_points)
     if n < 2:
         raise ValueError("Cần ít nhất 2 spawn point để chọn vị trí cho Pac-Man và Ghost.")
 
-    # Nếu là test case thứ 5, chọn dựa theo vị trí x của rect:
+    # Test case 3: chênh lệch X nhỏ nhất
+    if test_case == 3:
+        best_pair = None
+        min_dx = float('inf')
+        for i in range(n):
+            for j in range(i+1, n):
+                dx = abs(spawn_points[i].rect.centerx - spawn_points[j].rect.centerx)
+                if dx < min_dx:
+                    min_dx = dx
+                    best_pair = (i, j)
+        idx_i, idx_j = best_pair
+        return spawn_points[idx_i], spawn_points[idx_j]
+
+    # Test case 5: dựa theo vị trí Y
     if test_case == 5:
-        pacman_spawn = min(spawn_points, key=lambda sp: sp.rect.centerx)
-        ghost_spawn = max(spawn_points, key=lambda sp: sp.rect.centerx)
+        pacman_spawn = min(spawn_points, key=lambda sp: sp.rect.centery)
+        ghost_spawn = max(spawn_points, key=lambda sp: sp.rect.centery)
         return pacman_spawn, ghost_spawn
 
-    # Với các test case khác, sử dụng logic dựa trên khoảng cách giữa spawn points
+    # Tính khoảng cách Euclidean giữa các cặp điểm spawn
     pairs = []
     for i in range(n):
         for j in range(i+1, n):
             d = compute_distance(spawn_points[i], spawn_points[j])
             pairs.append(((i, j), d))
-    
     pairs_sorted = sorted(pairs, key=lambda x: x[1])
-    
+
+    # Nếu chỉ có một cặp duy nhất
     if len(pairs_sorted) == 1:
-        return spawn_points[pairs_sorted[0][0][0]], spawn_points[pairs_sorted[0][0][1]]
-    
+        i, j = pairs_sorted[0][0]
+        return spawn_points[i], spawn_points[j]
+
+    # Chọn theo test case
     if test_case == 1:
-        pair_indices = pairs_sorted[0][0]
+        idx_i, idx_j = pairs_sorted[0][0]
     elif test_case == 2:
-        pair_indices = pairs_sorted[-1][0]
-    elif test_case == 3:
-        median_index = len(pairs_sorted) // 2
-        pair_indices = pairs_sorted[median_index][0]
+        idx_i, idx_j = pairs_sorted[-1][0]
     elif test_case == 4:
-        pair_indices = pairs_sorted[1][0] if len(pairs_sorted) > 1 else pairs_sorted[0][0]
+        idx_i, idx_j = pairs_sorted[1][0]
     else:
-        pair_indices = pairs_sorted[len(pairs_sorted) // 2][0]
-    
-    pacman_spawn = spawn_points[pair_indices[0]]
-    ghost_spawn = spawn_points[pair_indices[1]]
+        # Default: khoảng cách trung vị
+        median = len(pairs_sorted) // 2
+        idx_i, idx_j = pairs_sorted[median][0]
+
+    pacman_spawn = spawn_points[idx_i]
+    ghost_spawn = spawn_points[idx_j]
     return pacman_spawn, ghost_spawn
+
 
 
 def run_visual_test(test_case: int, simulation_duration=60) -> dict:
