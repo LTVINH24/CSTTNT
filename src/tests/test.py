@@ -66,6 +66,8 @@ def run_test(module_name):
     except Exception as e:
         print(f"Lỗi khi chạy {module_name}: {e}")
     
+    print(f"\n Nội dung test đã được xuất thành file {module_name}.csv")
+
     input("\nNhấn Enter để trở về menu chính...")
 
 def main():
