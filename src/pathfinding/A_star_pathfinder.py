@@ -1,11 +1,28 @@
+"""
+Thuật toán A* 
+
+Module này thực hiện thuật toán A* để tìm đường đi tối ưu giữa các node trong một lưới.
+Thuật toán sử dụng khoảng cách Manhattan để làm heuristic.
+"""
 from queue import PriorityQueue
 from src.maze import MazeNode
 from .pathfinder import Pathfinder, PathfindingResult
 from .pathfinding_monitor import pathfinding_monitor
 
 # Ta tính khoảng cách mahattan để làm heuristic cho A*
-def Manhattan_distance(p1, p2):
+def manhattan_distance(p1, p2):
+    """
+    Calculates the Manhattan distance between two points.
+
+    Args:
+        p1 (tuple): The first point as a tuple (x1, y1).
+        p2 (tuple): The second point as a tuple (x2, y2).
+
+    Returns:
+        int: The Manhattan distance between the two points.
+    """
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
 
 @pathfinding_monitor
 def a_star_pathfinder(
@@ -15,6 +32,8 @@ def a_star_pathfinder(
 ) -> PathfindingResult:
 
     """Thuật toán A* tìm đường đi."""
+
+    
     # Lấy node bắt đầu và node đích
     start_node = start_location[1] \
       if len(start_location) > 1 and start_location[1] else start_location[0]
@@ -34,8 +53,8 @@ def a_star_pathfinder(
 
     # Khởi tạo node bắt đầu
     g_score[start_node] = 0
-    f_score[start_node] = Manhattan_distance(start_node.pos.center, target_node.pos.center)
-
+    f_score[start_node] = manhattan_distance(start_node.pos.center, target_node.pos.center)
+    
     # Thêm node bắt đầu vào danh sách mở
     counter = 0
     open_set.put((f_score[start_node], counter, start_node))
@@ -69,8 +88,7 @@ def a_star_pathfinder(
         # Xét các node kề
         if not hasattr(current, 'neighbors'):
             continue
-
-        for _direction, neighbor_data in current.neighbors.items():
+        for _, neighbor_data in current.neighbors.items():
             if not neighbor_data or len(neighbor_data) < 2:
                 continue
 
@@ -86,14 +104,11 @@ def a_star_pathfinder(
             if new_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = new_g_score
-                f_score[neighbor] = new_g_score + \
-                  Manhattan_distance(neighbor.pos.center, target_node.pos.center)
-
+                f_score[neighbor] = new_g_score + manhattan_distance(neighbor.pos.center, target_node.pos.center)
                 # Thêm vào danh sách mở
                 expanded_nodes.append(neighbor)
                 counter += 1
                 open_set.put((f_score[neighbor], counter, neighbor))
-
     return PathfindingResult([start_node], expanded_nodes)
 
 assert isinstance(a_star_pathfinder, Pathfinder)

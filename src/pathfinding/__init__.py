@@ -25,6 +25,6 @@ __all__ = [
     "random_walk_path_finder",
     "a_star_pathfinder",
     "ucs_pathfinder",
-    "depth_first_search_path_finder"
+    "depth_first_search_path_finder",
     "breadth_first_search_path_finder",
 ]

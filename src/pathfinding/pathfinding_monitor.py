@@ -32,8 +32,6 @@ if not logger.hasHandlers():
 def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
     """
     Decorator to monitor the pathfinding process.
-
-    TODO: Describe things being tracked here
     """
     def wrapper(*args, **kwargs):
         # Get the function signature and bind arguments to it
@@ -88,6 +86,7 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
                 print(f"{node} => ", end="")
             print("(end)")
         print_path(result.path)
+
         return result
 
     wrapper.last_stats = {} # Initialize last_stats attribute for the wrapper function

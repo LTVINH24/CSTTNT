@@ -163,14 +163,14 @@ class PathDispatcher:
         player: pg.sprite.Sprite,
         pathfinder: Pathfinder,
     ):
-        # TODO: Use proper locking mechanism if you need to modify the graph
+        # Use proper locking mechanism if you need to modify the graph
         self.maze_layout = maze_layout
 
         self.player = player
         self.pathfinder = pathfinder
         self.listeners: WeakSet[PathListener] = WeakSet()
         self.executor = ThreadPoolExecutor(max_workers=WORKERS)
-
+        self.last_stats = {}
         self.player_position_update_interval = PLAYER_POSITION_UPDATE_INTERVAL
         if self.player.rect is None:
             raise ValueError("Player should have the `rect` attribute.")
@@ -227,7 +227,7 @@ class PathDispatcher:
             # The listen is already at the target location
             return
 
-        # TODO: Enable/Disable multithreading for pathfinding here.
+        # Enable/Disable multithreading for pathfinding here.
         self.executor.submit(_pathfinding_task)
 
         # _pathfinding_task()
