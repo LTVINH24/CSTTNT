@@ -6,6 +6,7 @@ This module provides utilities for pathfinding in the maze.
 from .pathfinder import (
     Pathfinder, empty_path_finder,
     PathfindingResult,
+    rect_to_path_location,
     PathListener, PathDispatcher
 )
 
@@ -20,11 +21,12 @@ __all__ = [
     "Pathfinder",
     "empty_path_finder",
     "PathfindingResult",
+    "rect_to_path_location",
     "PathListener",
     "PathDispatcher",
     "random_walk_path_finder",
     "a_star_pathfinder",
     "ucs_pathfinder",
-    "depth_first_search_path_finder"
+    "depth_first_search_path_finder",
     "breadth_first_search_path_finder",
 ]

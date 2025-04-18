@@ -131,7 +131,7 @@ def rect_to_path_location(
     )
 
 WORKERS = 4
-PLAYER_POSITION_UPDATE_INTERVAL = 2000  # milliseconds
+PLAYER_POSITION_UPDATE_INTERVAL = 500  # milliseconds
 class PathDispatcher:
     """
     The PathDispatcher class is responsible for managing pathfinding requests and updates
@@ -195,6 +195,8 @@ class PathDispatcher:
             self,
             listener: PathListener,
             start_location: tuple[MazeNode, Optional[MazeNode]],
+            *,
+            forced_request: bool = False,
             ) -> None:
         """
         Receive a request for a path from the listener.
@@ -207,7 +209,33 @@ class PathDispatcher:
         Args:
             listener (PathListener): The listener requesting the path.
             start_node (MazeNode): The starting node for the path.
+            forced_request (bool): If True, forces the pathfinding even if the listener
+                is already waiting for a path.
+                Defaults to False.
         """
+        if not forced_request and listener.waiting_for_path:
+            # The listener is already waiting for a path
+            return
+
+        # Submit the pathfinding task to the executor.
+        listener.waiting_for_path = True
+
+        # Resolve trivial path
+        if start_location == self.previous_player_location:
+            # The listen is already at the target location
+            # Note that listener.waiting_for_path should be keeping True here
+            return
+        if start_location[1] is None and start_location[0] in self.previous_player_location:
+            # Can't happened if self.previous_player_location is of length 1
+            listener.new_path = [
+                start_location[0],
+                self.previous_player_location[0] \
+                    if self.previous_player_location[0] != start_location[0] \
+                    else self.previous_player_location[1],
+                ]
+            listener.waiting_for_path = False
+            return
+
         def _pathfinding_task() -> None:
             """
             Task to compute the pathfinding result.
@@ -220,16 +248,9 @@ class PathDispatcher:
             listener.new_path = path_result.path
             listener.waiting_for_path = False
             # Return None
-        # Submit the pathfinding task to the executor.
-        listener.waiting_for_path = True
-
-        if start_location == self.previous_player_location:
-            # The listen is already at the target location
-            return
 
         # TODO: Enable/Disable multithreading for pathfinding here.
         self.executor.submit(_pathfinding_task)
-
         # _pathfinding_task()
 
     def update(self, dt: int) -> None:
