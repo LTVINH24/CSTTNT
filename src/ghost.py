@@ -19,7 +19,7 @@ from src.maze import (
    MazeNode, MazeCoord,
    rect_to_maze_coords, find_path_containing_coord, move_along_path, is_snap_within
 )
-from src.pathfinding import PathListener, PathDispatcher
+from src.pathfinding import PathListener, PathDispatcher, Pathfinder
 from .constant import IMAGES_PATH
 
 GHOST_TYPES = { "blinky", "clyde", "inky", "pinky"}
@@ -67,6 +67,7 @@ class Ghost(pg.sprite.Sprite, PathListener):
             ghost_type: str | int = None,
             ghost_group: pg.sprite.Group = None,
             path_dispatcher: PathDispatcher = None,
+            path_finder: Pathfinder = None,
             ):
         if ghost_group is None:
             pg.sprite.Sprite.__init__(self)
@@ -91,7 +92,9 @@ class Ghost(pg.sprite.Sprite, PathListener):
         # Path related attributes
         self.path: list[MazeNode] = []
         self.path_dispatcher = path_dispatcher
+        self.path_finder = path_finder
         if path_dispatcher is not None:
+            path_dispatcher.register_listener(self)
             _initial_path = find_path_containing_coord(
                 rect_to_maze_coords(initial_position.rect),
                 path_dispatcher.maze_layout.maze_dict,
@@ -129,12 +132,17 @@ class Ghost(pg.sprite.Sprite, PathListener):
                 current_path if current_path[1] is not None else (current_path[0],)
             )
         elif is_snap_within(self.rect.center, self.path[0]):
-            self.path = self.path[0] # Keep the first node in the path
+            self.path = self.path[:1] # Keep the first node in the path
         else:
             self.path = self.path[:2] # Keep the first two nodes in the path
+
+        # Guard for the case self.path length is 1
+        self.waiting_for_path = True
         self.path_dispatcher.receive_request_for(
-            self,
-            (self.path[0], self.path[1] if len(self.path) > 1 else None),
+            listener=self,
+            start_location=(self.path[0], self.path[1] if len(self.path) > 1 else None),
+            path_finder=self.path_finder,
+            forced_request=True,
             )
 
     def update(self, dt: int) -> None:
@@ -149,12 +157,13 @@ class Ghost(pg.sprite.Sprite, PathListener):
         if not self.path or len(self.path) == 0:
             print("Warning: Ghost has no path to follow.")
             return
-        if len(self.path) <= 1:
+        if len(self.path) == 1:
             if self.waiting_for_path:
                 return
             self.path_dispatcher.receive_request_for(
-                self,
-                tuple(self.path),
+                listener=self,
+                start_location=(self.path[0], None),
+                path_finder=self.path_finder,
                 )
             return
         if self.path:
