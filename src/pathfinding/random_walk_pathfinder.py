@@ -15,8 +15,8 @@ PATH_LENGTH = 7
 @pathfinding_monitor
 def random_walk_path_finder(
     _maze_graph: list[MazeNode],
-    start_location: tuple[MazeNode, MazeNode | None], # max-length = 2
-    _target_location: tuple[MazeNode, MazeNode | None], # max-length = 2
+    start_location: tuple[MazeNode, MazeNode | None],
+    _target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
     """
     Simulates a random walk through a maze graph starting from a given 
@@ -33,23 +33,20 @@ def random_walk_path_finder(
     Returns:
         PathfindingResult: A result containing the random path and the expanded nodes.
     """
-    starting_node = start_location[0] if len(start_location) <= 1 else start_location[1]
+    starting_node = start_location[0] if start_location[1] is None else start_location[1]
     path_length = PATH_LENGTH  # Default path length
 
     # Generate a random path
-    path = list(start_location)
-    expanded_nodes = [starting_node]
-    _current_node = starting_node
+    path = list(filter(None, start_location))
+    expanded_nodes: list[MazeNode] = []
+    _current_node: MazeNode = starting_node
     for _ in range(path_length):
-        next_node: MazeNode = random.choice(
-            list(
-                filter(None, _current_node.neighbors.values())
-            )
-        )[0]  # Only take the node part, not along with the weight part
+        expanded_nodes.append(_current_node)
+        next_node: MazeNode = random.choice(list(_current_node.neighbors.values()))[0]
+          # Only take the node part, not along with the weight part
 
         # Update the path and expanded nodes
         path.append(next_node)
-        expanded_nodes.append(next_node)
         _current_node = next_node
 
     # Return the pathfinding result

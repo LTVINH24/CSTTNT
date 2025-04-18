@@ -28,17 +28,20 @@ def your_path_finder(
         _start_location (tuple[MazeNode, MazeNode | None]):
             A tuple of one or two MazeNodes.
 
-            If this is a tuple of one node, it means that the object is standing on a node.
+            If this is a tuple of "one node" (the second value is None),
+            it means that the object is standing on a node.
 
-            If this is a tuple of two nodes, it means that the object is currently moving
-            from the first node to the second node. In this case, **both nodes should be included
-            at the start of the returning path at any order**.
+            If this is a tuple of two nodes, it means that the object is currently on the edge
+            between the first node and the second node. In this case,
+            **both nodes should be included at the start of the returning path
+            in the order of this tuple**.
           
         _target_location (tuple[MazeNode, MazeNode | None]):
             Similar to **_start_location**, but for the goal location.
 
             If this is a tuple of two nodes, **both nodes should be included at the end
             of the returning path at any order**.
+            (i.e. the goal node should be either nodes in the tuple).
     Returns:
         PathfindingResult:
             An object containing the path from the start to the target and any additional metadata.

@@ -8,7 +8,7 @@ Classes:
 """
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Self
 from collections.abc import Sequence
 
 import pygame as pg
@@ -60,6 +60,30 @@ class MazeCoord(Sequence[int]):
         """
         self.x = int(x)  # Ensure x is an integer (e.g., if it's np.uint16)
         self.y = int(y)
+
+    @classmethod
+    def nearest_coord(
+        cls,
+        pos: tuple[int, int],
+        ) -> Self | None:
+        """
+        Find the nearest MazeCoord instance from a given position.
+        This method calculates the nearest maze coordinate based on the given
+        position tuple and the class's maze offset and tile size. If the calculated
+        coordinates are out of bounds (negative), it returns None.
+
+        Args:
+            pos (tuple[int, int]): The position as a tuple of (x, y) coordinates.
+
+        Returns:
+            out (MazeCoord | None): A MazeCoord instance representing the nearest
+            coordinate, or None if the position is out of bounds.
+        """
+        x = (pos[0] - cls.maze_offset[0]) // cls.tile_size
+        y = (pos[1] - cls.maze_offset[1]) // cls.tile_size
+        if x < 0 or y < 0:
+            return None
+        return cls(x, y)
 
     @property
     def rect(self) -> pg.Rect:

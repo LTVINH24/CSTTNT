@@ -138,6 +138,8 @@ def find_path_containing_coord(
                 end_node = maze_dict[current_right]
                 break
             current_right = MazeCoord(current_right.x + 1, current_right.y)
+    if start_node is not None and end_node is not None:
+        return start_node, end_node
     if current_coord[1] is None or current_coord[0].x == current_coord[1].x:
         current_top: MazeCoord = min(
             current_coord, key=lambda coord: coord.y if coord else float('inf')

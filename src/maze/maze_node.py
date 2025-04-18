@@ -23,7 +23,7 @@ class MazeDirection(Enum):
     """
     MazeDirection is an enumeration that represents the four possible directions
     in a maze: UP, DOWN, LEFT, and RIGHT.
-    
+
     Each direction is associated with a string value and provides utility methods
     for string representation (and vector representation).
 
@@ -60,11 +60,11 @@ class MazeDirection(Enum):
             case _:
                 return (0, 0)
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class MazeNode:
     """
     Represents a node in a maze, which can be a corner, an dead-end, or an intersection.
-    
+
     Each node has **a position in the maze** and a set of neighbors that represent
     the possible directions to move from this node.
 
@@ -74,7 +74,7 @@ class MazeNode:
         neighbors (dict[MazeDirection, tuple[Self, int]]):
             A dictionary mapping the four possible directions (UP, DOWN, LEFT, RIGHT)
             to a tuple containing the neighboring node and the cost to move to that neighbor.
-            
+
             If there is no neighbor in a direction, that direction is omitted from the dictionary.
     Properties:
         x (int): The x-coordinate (column number) of the node's position.
@@ -139,11 +139,11 @@ class MazeNode:
     def __copy__(self) -> Self:
         """Create a copy of the MazeNode."""
         return MazeNode(MazeCoord.__copy__(self.pos), self.neighbors.copy())
-    
-    def __eq__(self, other:Self) -> bool:
-        if isinstance(other,MazeNode):
-            return self.pos ==other.pos
-        return False
-    
-    def __hash__(self) -> int:
-        return hash(self.pos)
+
+    # def __eq__(self, other:Self) -> bool:
+    #     if isinstance(other,MazeNode):
+    #         return self.pos ==other.pos
+    #     return False
+
+    # def __hash__(self) -> int:
+    #     return hash(self.pos)

@@ -131,7 +131,7 @@ def rect_to_path_location(
     )
 
 WORKERS = 4
-PLAYER_POSITION_UPDATE_INTERVAL = 2000  # milliseconds
+PLAYER_POSITION_UPDATE_INTERVAL = 500  # milliseconds
 class PathDispatcher:
     """
     The PathDispatcher class is responsible for managing pathfinding requests and updates
@@ -161,13 +161,13 @@ class PathDispatcher:
         self,
         maze_layout: MazeLayout,
         player: pg.sprite.Sprite,
-        pathfinder: Pathfinder,
+        pathfinder: Pathfinder = None, # existing only for backward compatibility
     ):
         # Use proper locking mechanism if you need to modify the graph
         self.maze_layout = maze_layout
 
         self.player = player
-        self.pathfinder = pathfinder
+        self.path_finder: Pathfinder = pathfinder or empty_path_finder
         self.listeners: WeakSet[PathListener] = WeakSet()
         self.executor = ThreadPoolExecutor(max_workers=WORKERS)
         self.last_stats = {}
@@ -195,6 +195,10 @@ class PathDispatcher:
             self,
             listener: PathListener,
             start_location: tuple[MazeNode, Optional[MazeNode]],
+            *,
+            # keyword-only argument: backward compatibility
+            path_finder: Pathfinder = None,
+            forced_request: bool = False,
             ) -> None:
         """
         Receive a request for a path from the listener.
@@ -207,12 +211,42 @@ class PathDispatcher:
         Args:
             listener (PathListener): The listener requesting the path.
             start_node (MazeNode): The starting node for the path.
+            forced_request (bool): If True, forces the pathfinding even if the listener
+                is already waiting for a path.
+                Defaults to False.
         """
+        if not forced_request and listener.waiting_for_path:
+            # The listener is already waiting for a path
+            return
+
+        # Submit the pathfinding task to the executor.
+        listener.waiting_for_path = True
+
+        # Resolve trivial path
+        if start_location == self.previous_player_location:
+            # The listen is already at the target location
+            # Note that listener.waiting_for_path should be keeping True here
+            return
+        if start_location[1] is None and start_location[0] in self.previous_player_location:
+            # Can't happened if self.previous_player_location is of length 1
+            listener.new_path = [
+                start_location[0],
+                self.previous_player_location[0] \
+                    if self.previous_player_location[0] != start_location[0] \
+                    else self.previous_player_location[1],
+                ]
+            listener.waiting_for_path = False
+            return
+
+        # Check if the pathfinder is callable, only for backward compatibility
+        if path_finder is None:
+            path_finder = self.path_finder
+
         def _pathfinding_task() -> None:
             """
             Task to compute the pathfinding result.
             """
-            path_result = self.pathfinder(
+            path_result = path_finder(
                 self.maze_layout.maze_graph,  # The maze graph
                 start_location,  # Starting location
                 self.previous_player_location,  # Target location
@@ -220,16 +254,9 @@ class PathDispatcher:
             listener.new_path = path_result.path
             listener.waiting_for_path = False
             # Return None
-        # Submit the pathfinding task to the executor.
-        listener.waiting_for_path = True
-
-        if start_location == self.previous_player_location:
-            # The listen is already at the target location
-            return
 
         # Enable/Disable multithreading for pathfinding here.
         self.executor.submit(_pathfinding_task)
-
         # _pathfinding_task()
 
     def update(self, dt: int) -> None:

@@ -17,11 +17,13 @@ from src.constant import TILE_SIZE
 WALL_CHAR = "="
 SPACE_CHAR = "."
 SPAWN_POINT_CHAR = "S"
+PLAYER_SPAWN_POINT_CHAR = "P"
 
 MAZE_PART_WEIGHTS = {
     WALL_CHAR: 10000,
     SPACE_CHAR: 1,
-    SPAWN_POINT_CHAR: 1
+    SPAWN_POINT_CHAR: 1,
+    PLAYER_SPAWN_POINT_CHAR: 1,
 }
 DEFAULT_WEIGHT = 1
 
@@ -40,6 +42,7 @@ class MazePart(Enum):
     WALL = WALL_CHAR
     SPACE = SPACE_CHAR
     SPAWN_POINT = SPAWN_POINT_CHAR
+    PLAYER_SPAWN_POINT = PLAYER_SPAWN_POINT_CHAR
 
     @property
     def weight(self) -> int:
@@ -53,6 +56,7 @@ class MazePart(Enum):
             cls.WALL: wall_surface,
             cls.SPACE: space_surface,
             cls.SPAWN_POINT: space_surface,
+            cls.PLAYER_SPAWN_POINT: space_surface,
         }
 
     @classmethod
@@ -64,4 +68,6 @@ class MazePart(Enum):
             return cls.SPACE
         if char == SPAWN_POINT_CHAR:
             return cls.SPAWN_POINT
+        if char == PLAYER_SPAWN_POINT_CHAR:
+            return cls.PLAYER_SPAWN_POINT
         raise ValueError(f"Invalid character for maze part: {char}")
