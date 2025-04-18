@@ -1,11 +1,9 @@
 """
-This module implements the Depth-First Search (DFS) algorithm for pathfinding.
-
-DFS explores as far as possible along each branch before backtracking, 
-finding paths that may not be the shortest but using less memory than BFS.
+TODO: Provide a reasonable description for your module.
 """
 
 from src.maze import MazeNode
+
 from .pathfinder import Pathfinder, PathfindingResult
 from .pathfinding_monitor import pathfinding_monitor
 
@@ -20,111 +18,67 @@ def depth_first_search_path_finder(
 
     DFS explores as far as possible along each branch before backtracking. It uses a stack to
     keep track of nodes to be explored, and visits the most recently discovered node first.
-    """
-    # Lấy node bắt đầu và node đích
-    start_first_node = start_location[0]
-    start_second_node = start_location[1] if len(start_location) > 1 else None
     
-    # Lấy node đích
-    target_first_node = target_location[0]
-    target_second_node = target_location[1] if len(target_location) > 1 else None
+    Args:
+        _maze_graph (list[MazeNode]):
+            The graph representation of the maze, where each node represents a position in the maze.
+        start_location (tuple[MazeNode, MazeNode | None]):
+            A tuple of one or two MazeNodes.
 
-    print(f"Start node: {start_first_node}, Second start node: {start_second_node}")
+            If this is a tuple of one node, it means that the object is standing on a node.
+
+            If this is a tuple of two nodes, it means that the object is currently moving
+            from the first node to the second node. In this case, **both nodes should be included
+            at the start of the returning path at any order**.
+          
+        target_location (tuple[MazeNode, MazeNode | None]):
+            Similar to **start_location**, but for the goal location.
+
+            If this is a tuple of two nodes, **both nodes should be included at the end
+            of the returning path at any order**.
+    Returns:
+        PathfindingResult:
+            An object containing the path from the start to the target and any additional metadata.
+    """
+    start_path = []
+    if len(start_location) > 1 and start_location[1] is not None:
+        starting_node = start_location[1]
+        start_path = [start_location[0]]
+    else:
+        starting_node = start_location[0]
+    target_node = target_location[0]
+    target_second_node = None
+    if len(target_location) > 1 and target_location[1] is not None:
+        target_second_node = target_location[1]
     
-    # Chọn node để chạy thuật toán DFS
-    start_node = start_second_node if start_second_node is not None else start_first_node
+    # Kiểm tra nếu đã ở điểm đích
+    if starting_node == target_node:
+        final_path = start_path + [starting_node]
+        if target_second_node is not None and target_second_node not in final_path:
+            final_path.append(target_second_node)        
+        return PathfindingResult(final_path, [starting_node])
     
-    # Nếu đã ở đích, trả về cả hai node bắt đầu
-    if start_node == target_first_node:
-        result_path = []
-        if start_first_node:
-            result_path.append(start_first_node)
-        if start_second_node and start_second_node != start_first_node:
-            result_path.append(start_second_node)
-        if target_second_node:
-            result_path.append(target_second_node)
-        return PathfindingResult(result_path, [start_node])
-    
-    # Khởi tạo stack và set visited cho DFS
-    stack = [(start_node, [])]  # (node, đường đi đến node)
+    stack = [(starting_node, start_path)]
     visited = set()
     expanded_nodes = []
     
     while stack:
-        current_node, path_to_current = stack.pop()
-        
-        if current_node in visited:
-            continue
-        
-        # Thêm vào danh sách đã thăm và expanded_nodes
-        visited.add(current_node)
-        expanded_nodes.append(current_node)
-        
-        # Kiểm tra xem đã đến đích chưa, kiểm tra xem nó đến target_first hay là target_second trước
-        reached_target_first = (current_node == target_first_node)
-        reached_target_second = (current_node == target_second_node)
-
-        # Nếu đã đến một trong các đích
-        if reached_target_first or reached_target_second:
-            # Tạo đường đi từ điểm bắt đầu đến hiện tại
-            temp_path = path_to_current + [current_node]
-            
-            # Tạo đường đi cuối cùng, luôn đảm bảo start_location[0] và start_location[1] có trong đường đi
-            final_path = []
-            
-            # Luôn thêm start_first_node vào đầu đường đi
-            if start_first_node:
-                final_path.append(start_first_node)
-                # Nếu node này đã có trong temp_path, loại bỏ để tránh trùng lặp
-                if start_first_node in temp_path:
-                    temp_path.remove(start_first_node)
-            
-            # Luôn thêm start_second_node nếu có
-            if start_second_node and start_second_node != start_first_node:
-                final_path.append(start_second_node)
-                # Nếu node này đã có trong temp_path, loại bỏ để tránh trùng lặp
-                if start_second_node in temp_path:
-                    temp_path.remove(start_second_node)
-            
-            # Thêm phần còn lại của đường đi
-            final_path.extend(temp_path)
-
-            # Xử lý thứ tự target nodes dựa trên node nào được đến trước
-            if reached_target_second:
-                # Ghost đến target_second trước - thêm target_second trước, sau đó là target_first
-                
-                # Đảm bảo target_second được thêm vào nếu nó không có trong đường đi
-                if target_second_node not in final_path:
-                    final_path.append(target_second_node)
-                
-                # Sau đó thêm target_first nếu nó không có trong đường đi
-                if target_first_node not in final_path:
-                    final_path.append(target_first_node)
-            else:
-                # Ghost đến target_first trước - thêm target_first trước, sau đó là target_second
-                
-                # Đảm bảo target_first có trong đường đi (có thể đã có từ temp_path)
-                if target_first_node not in final_path:
-                    final_path.append(target_first_node)
-                
-                # Sau đó thêm target_second nếu có và chưa có trong đường đi
-                if target_second_node and target_second_node not in final_path:
-                    final_path.append(target_second_node)
-
+        current_node, path = stack.pop()
+        if current_node == target_node:
+            final_path = path + [current_node]
+            if target_second_node is not None and target_second_node not in final_path:
+                final_path.append(target_second_node)
+                            
             return PathfindingResult(final_path, expanded_nodes)
         
-        # Thêm các láng giềng vào stack để duyệt tiếp
-        for neighbor, _ in current_node.neighbors.values():
-            if neighbor and neighbor not in visited:
-                stack.append((neighbor, path_to_current + [current_node]))
+        if current_node not in visited:
+            visited.add(current_node)
+            expanded_nodes.append(current_node)
+            
+            for neighbor, _ in current_node.neighbors.values():
+                if neighbor not in visited:
+                    stack.append((neighbor, path + [current_node]))
 
-    # Không tìm thấy đường đi, trả về các node bắt đầu
-    result_path = []
-    if start_first_node:
-        result_path.append(start_first_node)
-    if start_second_node and start_second_node != start_first_node:
-        result_path.append(start_second_node)
-        
-    return PathfindingResult(result_path, expanded_nodes)
+    return PathfindingResult([], expanded_nodes)
 
 assert isinstance(depth_first_search_path_finder, Pathfinder)
