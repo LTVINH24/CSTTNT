@@ -12,14 +12,8 @@ from .pathfinding_monitor import pathfinding_monitor
 # Ta tính khoảng cách mahattan để làm heuristic cho A*
 def manhattan_distance(p1, p2):
     """
-    Calculates the Manhattan distance between two points.
-
-    Args:
-        p1 (tuple): The first point as a tuple (x1, y1).
-        p2 (tuple): The second point as a tuple (x2, y2).
-
-    Returns:
-        int: The Manhattan distance between the two points.
+    Tính khoảng cách Manhattan giữa hai điểm p1 và p2.
+    Khoảng cách Manhattan là tổng của độ chênh lệch tuyệt đối giữa các tọa độ x và y.
     """
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
@@ -30,18 +24,36 @@ def a_star_pathfinder(
     start_location: tuple[MazeNode, MazeNode | None],
     target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
-
     """Thuật toán A* tìm đường đi."""
-
     
     # Lấy node bắt đầu và node đích
-    start_node = start_location[1] \
-      if len(start_location) > 1 and start_location[1] else start_location[0]
-    target_node = target_location[0]
+    start_first_node = start_location[0]
+    start_second_node = None
+    if len(start_location) > 1:
+        start_second_node = start_location[1]
+    
+    # Lấy node đích
+    target_first_node = target_location[0]
+    target_second_node = None
+    if len(target_location) > 1:
+        target_second_node = target_location[1]
 
-    # Nếu nó là điểm đích, trả về start_node
+    print(f"Start node: {start_first_node}, Second start node: {start_second_node}")
+    
+    # Chọn node để chạy thuật toán A*
+    start_node = start_second_node if start_second_node else start_first_node
+    target_node = target_first_node
+
+    # Nếu nó là điểm đích, trả về cả hai node bắt đầu
     if start_node == target_node:
-        return PathfindingResult([start_node], [start_node])
+        result_path = []
+        if start_first_node:
+            result_path.append(start_first_node)
+        if start_second_node and start_second_node != start_first_node:
+            result_path.append(start_second_node)
+        if target_second_node:
+            result_path.append(target_second_node)
+        return PathfindingResult(result_path, result_path)
 
     # Khởi tạo
     open_set = PriorityQueue()
@@ -70,17 +82,41 @@ def a_star_pathfinder(
 
         # Nếu đã đến đích
         if current == target_node:
-            path = [current]
-            while current in came_from:
-                current = came_from[current]
-                path.append(current)
-            path.reverse()
+            # Tạo đường đi từ đích về điểm bắt đầu
+            temp_path = [current]
+            temp_current = current
+            while temp_current in came_from:
+                temp_current = came_from[temp_current]
+                temp_path.append(temp_current)
+            
+            # Đảo ngược để có đường đi từ đầu đến cuối
+            temp_path.reverse()
+            
+            # Tạo đường đi cuối cùng, luôn đảm bảo start_location[0] và start_location[1] có trong đường đi
+            final_path = []
+            
+            # Luôn thêm start_first_node vào đầu đường đi
+            if start_first_node:
+                final_path.append(start_first_node)
+                # Nếu node này đã có trong temp_path, loại bỏ để tránh trùng lặp
+                if start_first_node in temp_path:
+                    temp_path.remove(start_first_node)
+            
+            # Luôn thêm start_second_node nếu có
+            if start_second_node and start_second_node != start_first_node:
+                final_path.append(start_second_node)
+                # Nếu node này đã có trong temp_path, loại bỏ để tránh trùng lặp
+                if start_second_node in temp_path:
+                    temp_path.remove(start_second_node)
+            
+            # Thêm phần còn lại của đường đi
+            final_path.extend(temp_path)
 
-            # Thêm target_node[1] vào đường đi nếu tồn tại
-            if len(target_location) > 1 and target_location[1]:
-                path.append(target_location[1])
+            # Thêm target_second_node vào đường đi nếu tồn tại
+            if target_second_node:
+                final_path.append(target_second_node)
 
-            return PathfindingResult(path, expanded_nodes)
+            return PathfindingResult(final_path, expanded_nodes)
 
         # Đánh dấu node hiện tại đã xét
         closed_set.add(current)
@@ -88,6 +124,7 @@ def a_star_pathfinder(
         # Xét các node kề
         if not hasattr(current, 'neighbors'):
             continue
+            
         for _, neighbor_data in current.neighbors.items():
             if not neighbor_data or len(neighbor_data) < 2:
                 continue
@@ -109,6 +146,15 @@ def a_star_pathfinder(
                 expanded_nodes.append(neighbor)
                 counter += 1
                 open_set.put((f_score[neighbor], counter, neighbor))
-    return PathfindingResult([start_node], expanded_nodes)
+    
+    # Không tìm thấy đường đi, trả về các node bắt đầu
+    result_path = []
+    if start_first_node:
+        result_path.append(start_first_node)
+    if start_second_node and start_second_node != start_first_node:
+        result_path.append(start_second_node)
+        
+    return PathfindingResult(result_path, expanded_nodes)
+
 
 assert isinstance(a_star_pathfinder, Pathfinder)

@@ -11,11 +11,16 @@ import time
 
 from src.constant import BASE_PATH
 from src.maze import MazeNode
-from src.pathfinding import Pathfinder, PathfindingResult
+from .pathfinder import Pathfinder, PathfindingResult
 
-LOGGER_PATH = os.path.join(BASE_PATH, "src", "logs")
-os.makedirs(os.path.dirname(LOGGER_PATH), exist_ok=True)  # Ensure the directory exists
-LOGGER_PATH = os.path.join(LOGGER_PATH, "pathfinding_monitor.log")
+# Đường dẫn đến thư mục logs
+LOGS_DIR = os.path.join(BASE_PATH, "src", "logs")
+
+# Tạo thư mục logs nếu chưa tồn tại
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+# Đường dẫn đến file log
+LOGGER_PATH = os.path.join(LOGS_DIR, "pathfinding_monitor.log")
 
 logger = logging.getLogger("shared_pathfinding_logger")
 logger.setLevel(logging.INFO)
