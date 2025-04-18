@@ -219,9 +219,6 @@ class PathDispatcher:
             )
             listener.new_path = path_result.path
             listener.waiting_for_path = False
-            # Store the last statistics from the pathfinder
-            if hasattr(self.pathfinder, 'last_stats'):
-                self.last_stats = self.pathfinder.last_stats
             # Return None
         # Submit the pathfinding task to the executor.
         listener.waiting_for_path = True
