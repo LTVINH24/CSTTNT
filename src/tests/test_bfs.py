@@ -6,6 +6,7 @@ from src.player import Player
 from src.ghost import Ghost
 from src.constant import TILE_SIZE
 from src.pathfinding import PathDispatcher, breadth_first_search_path_finder
+import csv 
 
 def compute_distance(sp1, sp2):
     c1 = sp1.rect.center
@@ -183,6 +184,39 @@ def print_statistics_table(stats_list):
         ]
         print(header_format.format(*formatted_values))
 
+def write_statistics_to_file(stats_list, filename):
+    """
+    Write the statistics table to a CSV file.
+    
+    Args:
+        stats_list (list): List of dictionaries containing test statistics.
+        filename (str): Name of the output file.
+    """
+    # Ensure the filename has .csv extension
+    if not filename.endswith('.csv'):
+        filename += '.csv'
+    
+    headers = ["Test Case", "Collision", "Duration (s)", "Search Time (s)", "Memory Peak (bytes)", "Expanded Nodes"]
+    
+    with open(filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        # Write title as a comment
+        writer.writerow(['# UNIFORM COST SEARCH (UCS) TEST RESULTS'])
+        # Write headers
+        writer.writerow(headers)
+        
+        # Write data rows
+        for stats in stats_list:
+            row = [
+                stats["Test Case"],
+                stats["Collision"],
+                stats["Duration (s)"],
+                "{:.6f}".format(stats["Search Time (s)"]),
+                stats["Memory Peak (bytes)"],
+                stats["Expanded Nodes"]
+            ]
+            writer.writerow(row)
+
 def main():
     all_stats = []
     for test in range(1, 6):
@@ -193,6 +227,9 @@ def main():
         time.sleep(2)
     print("\nBảng thống kê các thông số của 5 lần chạy:")
     print_statistics_table(all_stats)
+
+    # Write statistics to file
+    write_statistics_to_file(all_stats, "test_bfs.csv")
 
 if __name__ == "__main__":
     main()
