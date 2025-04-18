@@ -22,9 +22,9 @@ class MazeLevel:
     level: int
     maze_layout: MazeLayout
     spawn_points: list[MazeCoord]
+    player_spawn_points: list[MazeCoord]
 
     ghosts: pg.sprite.Group = field(default_factory=pg.sprite.Group)
-    pacman: pg.sprite.Sprite | None = None
 
 def set_up_level(
         screen: pg.Surface,
@@ -44,17 +44,25 @@ def set_up_level(
     Returns:
         MazeLevel: An object containing the maze layout, level number, and sorted spawn points.
     """
-    _maze_layout = load_maze(f"level{level}.txt")
+    _maze_layout = load_maze(
+        level_file_name=f"level{level}.txt",
+        interesting_parts=frozenset([
+            MazePart.SPAWN_POINT,
+            MazePart.PLAYER_SPAWN_POINT,
+        ]),
+        )
     _maze_layout = build_maze(
         _maze_layout,
         screen_sizes=screen.get_size(),
     )
     _spawn_points = _maze_layout.points_of_interest[MazePart.SPAWN_POINT]
+    _player_spawn_points = _maze_layout.points_of_interest[MazePart.PLAYER_SPAWN_POINT]
 
     return MazeLevel(
         level=level,
         maze_layout=_maze_layout,
         spawn_points=sorted(_spawn_points),
+        player_spawn_points=sorted(_player_spawn_points),
     )
 
 def render_maze_level(
