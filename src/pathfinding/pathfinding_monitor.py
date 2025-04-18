@@ -3,14 +3,31 @@ Pathfinding Monitor
 
 This module provides a decorator to monitor the pathfinding process.
 """
+import os
+import logging
 import inspect
-# TODO: Remove this import if not needed, otherwise, remove the pylint disable/enable comments.
-# pylint: disable=unused-import
-import tracemalloc # suggestion for tracing memory usage
-# pylint: enable=unused-import
+import tracemalloc
+import time
 
+from src.constant import BASE_PATH
 from src.maze import MazeNode
 from src.pathfinding import Pathfinder, PathfindingResult
+
+LOGGER_PATH = os.path.join(BASE_PATH, "src", "logs")
+os.makedirs(os.path.dirname(LOGGER_PATH), exist_ok=True)  # Ensure the directory exists
+LOGGER_PATH = os.path.join(LOGGER_PATH, "pathfinding_monitor.log")
+
+logger = logging.getLogger("shared_pathfinding_logger")
+logger.setLevel(logging.INFO)
+
+if not logger.hasHandlers():
+    handler = logging.FileHandler(LOGGER_PATH)  # Save logs to the specified file
+    formatter = logging.Formatter(
+        '%(asctime)s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+        )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
     """
@@ -19,9 +36,6 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
     TODO: Describe things being tracked here
     """
     def wrapper(*args, **kwargs):
-        # TODO: Set up actual monitoring logic here
-        # TODO: Consider logging in a separate file for easier data collection
-
         # Get the function signature and bind arguments to it
         sig = inspect.signature(func)
         bound_args = sig.bind(*args, **kwargs)
@@ -43,8 +57,31 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
         else:
             print("???")
 
+        # Start memory and time tracking
+        tracemalloc.start()
+        start_time = time.time()
+
         result: PathfindingResult = func(*args, **kwargs)
-        # TODO: Add actual monitoring logic here
+
+        # Stop memory tracking and calculate peak memory usage
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        end_time = time.time()
+        wrapper.last_stats = {
+            'search_time': end_time - start_time,
+            'memory_peak': peak,
+            'expanded_nodes': len(result.expanded_nodes)
+        }
+
+        # Log the results
+        logger.info(
+            "%s took %.6fs, expanded %d nodes, peak memory usage: %d bytes",
+            func.__name__,
+            wrapper.last_stats['search_time'],
+            wrapper.last_stats['expanded_nodes'],
+            wrapper.last_stats['memory_peak']
+        )
+
         def print_path(nodes: list[MazeNode]):
             print("Path: ", end="")
             for node in nodes:
@@ -53,4 +90,5 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
         print_path(result.path)
         return result
 
+    wrapper.last_stats = {} # Initialize last_stats attribute for the wrapper function
     return wrapper

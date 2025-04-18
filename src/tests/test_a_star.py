@@ -152,7 +152,7 @@ def run_visual_test(test_case: int, simulation_duration=20) -> dict:
     pg.quit()
 
     # Lấy số liệu thực từ đối tượng path_dispatcher (đã được cập nhật bởi quá trình gọi A_star)
-    stats = getattr(path_dispatcher, 'last_stats', {})
+    stats = getattr(a_star_pathfinder, 'last_stats', {})
     search_time = stats.get('search_time', 0)
     memory_peak = stats.get('memory_peak', 0)
     expanded_nodes = stats.get('expanded_nodes', 0)
