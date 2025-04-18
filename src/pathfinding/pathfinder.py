@@ -161,13 +161,13 @@ class PathDispatcher:
         self,
         maze_layout: MazeLayout,
         player: pg.sprite.Sprite,
-        pathfinder: Pathfinder,
+        pathfinder: Pathfinder = None, # existing only for backward compatibility
     ):
         # TODO: Use proper locking mechanism if you need to modify the graph
         self.maze_layout = maze_layout
 
         self.player = player
-        self.pathfinder = pathfinder
+        self.path_finder: Pathfinder = pathfinder or empty_path_finder
         self.listeners: WeakSet[PathListener] = WeakSet()
         self.executor = ThreadPoolExecutor(max_workers=WORKERS)
 
@@ -196,6 +196,8 @@ class PathDispatcher:
             listener: PathListener,
             start_location: tuple[MazeNode, Optional[MazeNode]],
             *,
+            # keyword-only argument: backward compatibility
+            path_finder: Pathfinder = None,
             forced_request: bool = False,
             ) -> None:
         """
@@ -236,11 +238,15 @@ class PathDispatcher:
             listener.waiting_for_path = False
             return
 
+        # Check if the pathfinder is callable, only for backward compatibility
+        if path_finder is None:
+            path_finder = self.path_finder
+
         def _pathfinding_task() -> None:
             """
             Task to compute the pathfinding result.
             """
-            path_result = self.pathfinder(
+            path_result = path_finder(
                 self.maze_layout.maze_graph,  # The maze graph
                 start_location,  # Starting location
                 self.previous_player_location,  # Target location
