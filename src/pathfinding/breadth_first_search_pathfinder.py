@@ -6,13 +6,11 @@ from collections import deque
 import time
 import tracemalloc
 from src.maze import MazeNode
-from src.maze import MazeDirection
 from .pathfinder import Pathfinder, PathfindingResult
 from .pathfinding_monitor import pathfinding_monitor
 
 @pathfinding_monitor
 def breadth_first_search_path_finder(
-    maze_graph: list[MazeNode],
     start_location: tuple[MazeNode, MazeNode | None],
     target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:

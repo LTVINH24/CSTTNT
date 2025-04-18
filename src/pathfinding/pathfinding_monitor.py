@@ -4,23 +4,28 @@ Pathfinding Monitor
 This module provides a decorator to monitor the pathfinding process.
 """
 import inspect
-# TODO: Remove this import if not needed, otherwise, remove the pylint disable/enable comments.
-# pylint: disable=unused-import
-import tracemalloc # suggestion for tracing memory usage
-# pylint: enable=unused-import
+import tracemalloc
+import time
+import logging
 
 from src.maze import MazeNode
 from src.pathfinding import Pathfinder, PathfindingResult
 
+# Configure the logger
+logging.basicConfig(
+    filename="pathfinding_monitor.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s"
+)
+
 def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
     """
     Decorator to monitor the pathfinding process.
-
-    TODO: Describe things being tracked here
     """
     def wrapper(*args, **kwargs):
-        # TODO: Set up actual monitoring logic here
-        # TODO: Consider logging in a separate file for easier data collection
+        # Start memory and time tracking
+        tracemalloc.start()
+        start_time = time.time()
 
         # Get the function signature and bind arguments to it
         sig = inspect.signature(func)
@@ -42,15 +47,35 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
             print(f"{target_location}")
         else:
             print("???")
-
         result: PathfindingResult = func(*args, **kwargs)
-        # TODO: Add actual monitoring logic here
+
+        # Stop memory and time tracking
+        end_time = time.time()
+        current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        # Save stats into last_stats directly on the wrapper function
+        wrapper.last_stats = {
+            "search_time": end_time - start_time,
+            "memory_peak": peak,
+            "expanded_nodes": len(result.expanded_nodes)
+        }
+        # Log the statistics
+        logging.info("Pathfinding: %s", func.__name__)
+        logging.info("Execution time: %.6f seconds", end_time - start_time)
+        logging.info("Memory usage: Current=%.6f MB, Peak=%.6f MB", current / 10**6, peak / 10**6)
+        logging.info("Expanded nodes: %d", len(result.expanded_nodes))
+
+
+        # Print the path
         def print_path(nodes: list[MazeNode]):
             print("Path: ", end="")
             for node in nodes:
                 print(f"{node} => ", end="")
             print("(end)")
         print_path(result.path)
+
         return result
 
+    wrapper.last_stats = {}  # Initialize last_stats on the wrapper function
     return wrapper
