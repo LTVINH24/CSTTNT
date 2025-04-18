@@ -28,20 +28,16 @@ def a_star_pathfinder(
     
     # Lấy node bắt đầu và node đích
     start_first_node = start_location[0]
-    start_second_node = None
-    if len(start_location) > 1:
-        start_second_node = start_location[1]
+    start_second_node = start_location[1] if len(start_location) > 1 else None
     
     # Lấy node đích
     target_first_node = target_location[0]
-    target_second_node = None
-    if len(target_location) > 1:
-        target_second_node = target_location[1]
+    target_second_node = target_location[1] if len(target_location) > 1 else None
 
     print(f"Start node: {start_first_node}, Second start node: {start_second_node}")
     
     # Chọn node để chạy thuật toán A*
-    start_node = start_second_node if start_second_node else start_first_node
+    start_node = start_second_node if start_second_node is not None else start_first_node
     target_node = target_first_node
 
     # Nếu nó là điểm đích, trả về cả hai node bắt đầu
@@ -80,8 +76,16 @@ def a_star_pathfinder(
         if current in closed_set:
             continue
 
-        # Nếu đã đến đích
-        if current == target_node:
+        # Kiểm tra xem đã đến đích chưa, kiểm tra xem nó đến target_first hay là target_second trước
+        reached_target_first = None
+        reached_target_second = None
+        if current == target_second_node:
+            reached_target_second = target_second_node
+        elif current == target_first_node:
+            reached_target_first = target_first_node
+
+        # Nếu đã đến một trong các đích
+        if reached_target_first or reached_target_second:
             # Tạo đường đi từ đích về điểm bắt đầu
             temp_path = [current]
             temp_current = current
@@ -96,25 +100,37 @@ def a_star_pathfinder(
             final_path = []
             
             # Luôn thêm start_first_node vào đầu đường đi
-            if start_first_node:
+            if start_first_node and start_first_node not in temp_path:
                 final_path.append(start_first_node)
-                # Nếu node này đã có trong temp_path, loại bỏ để tránh trùng lặp
-                if start_first_node in temp_path:
-                    temp_path.remove(start_first_node)
             
             # Luôn thêm start_second_node nếu có
-            if start_second_node and start_second_node != start_first_node:
+            if start_second_node and start_second_node != start_first_node and start_second_node not in temp_path:
                 final_path.append(start_second_node)
-                # Nếu node này đã có trong temp_path, loại bỏ để tránh trùng lặp
-                if start_second_node in temp_path:
-                    temp_path.remove(start_second_node)
             
             # Thêm phần còn lại của đường đi
             final_path.extend(temp_path)
 
-            # Thêm target_second_node vào đường đi nếu tồn tại
-            if target_second_node:
-                final_path.append(target_second_node)
+            # Xử lý thứ tự target nodes dựa trên node nào được đến trước
+            if reached_target_second:
+                # Ghost đến target_second trước - thêm target_second trước, sau đó là target_first
+                
+                # Đảm bảo target_second được thêm vào nếu nó không có trong đường đi
+                if target_second_node not in final_path:
+                    final_path.append(target_second_node)
+                
+                # Sau đó thêm target_first nếu nó không có trong đường đi
+                if target_first_node not in final_path:
+                    final_path.append(target_first_node)
+            else:
+                # Ghost đến target_first trước - thêm target_first trước, sau đó là target_second
+                
+                # Đảm bảo target_first có trong đường đi (có thể đã có từ temp_path)
+                if target_first_node not in final_path:
+                    final_path.append(target_first_node)
+                
+                # Sau đó thêm target_second nếu có và chưa có trong đường đi
+                if target_second_node and target_second_node not in final_path:
+                    final_path.append(target_second_node)
 
             return PathfindingResult(final_path, expanded_nodes)
 
