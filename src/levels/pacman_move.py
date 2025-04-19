@@ -143,84 +143,68 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
 
         # Update the screen
         pg.display.flip()
+
+
+
+    
 def handle_pacman_movement(
         pacman: Player,
         keys: any,
         maze_weights: np.ndarray[np.uint16],
-        current_direction: tuple[int, int] = None,
+        current_direction :tuple[int,int] = None,
         target_pos: tuple[int, int] = None,
-        dt: float = 0) -> tuple[tuple[int, int], tuple[int, int]]:
-    """
-    Xử lý di chuyển mượt mà cho Pacman.
-    """
-    # Tốc độ pixel mỗi mili giây
-    speed = pacman.speed / 1000
-    
-    # Xác định hướng mới nếu người dùng nhấn phím
-    new_direction = None
+        dt:float = 0
+) ->tuple[tuple[int, int], tuple[int, int]]:
+    if current_direction is None:
+        current_direction = (0, 0)
+    new_direction = current_direction
     if keys[pg.K_UP]:
         new_direction = (0, -1)
     elif keys[pg.K_DOWN]:
         new_direction = (0, 1)
     elif keys[pg.K_LEFT]:
         new_direction = (-1, 0)
-    elif keys[pg.K_RIGHT]:
+    elif keys[pg.K_RIGHT]:  
         new_direction = (1, 0)
     
-    # Nếu không có hướng hiện tại hoặc đã đến điểm mục tiêu, thiết lập hướng mới
-    if target_pos is None or (abs(pacman.rect.x - target_pos[0]) <= 2 and abs(pacman.rect.y - target_pos[1]) < 2):
-        if new_direction is not None:
-            # Tính toán vị trí mục tiêu tiếp theo
-            next_x = ((pacman.rect.x + TILE_SIZE//2) // TILE_SIZE) * TILE_SIZE
-            next_y = ((pacman.rect.y + TILE_SIZE//2) // TILE_SIZE) * TILE_SIZE
-            
-            # Kiểm tra xem có thể di chuyển theo hướng mới không
-            test_x = next_x + new_direction[0] * TILE_SIZE
-            test_y = next_y + new_direction[1] * TILE_SIZE
-            maze_coord = MazeCoord.nearest_coord((test_x, test_y))
-            
-            if maze_coord is not None and maze_weights[maze_coord.y, maze_coord.x] < MazePart.WALL.weight:
-                # Căn chỉnh vị trí hiện tại về ô lưới
-                pacman.rect.x = next_x
-                pacman.rect.y = next_y
-                current_direction = new_direction
-                target_pos = (test_x, test_y)
-    
-    # Nếu đang di chuyển, tiếp tục di chuyển theo hướng hiện tại
-    if current_direction is not None and target_pos is not None:
-        pacman.rect.x += current_direction[0] * speed * dt
-        pacman.rect.y += current_direction[1] * speed * dt
-        
-        # Kiểm tra xem đã đến đích chưa
-        if (current_direction[0] > 0 and pacman.rect.x >= target_pos[0]) or \
-           (current_direction[0] < 0 and pacman.rect.x <= target_pos[0]) or \
-           (current_direction[1] > 0 and pacman.rect.y >= target_pos[1]) or \
-           (current_direction[1] < 0 and pacman.rect.y <= target_pos[1]):
-            pacman.rect.topleft = target_pos
-            
-            # Kiểm tra xem có thể tiếp tục di chuyển theo hướng hiện tại không
-            next_x = target_pos[0] + current_direction[0] * TILE_SIZE
-            next_y = target_pos[1] + current_direction[1] * TILE_SIZE
-            maze_coord = MazeCoord.nearest_coord((next_x, next_y))
-            
-            if maze_coord is not None and maze_weights[maze_coord.y, maze_coord.x] < MazePart.WALL.weight:
-                target_pos = (next_x, next_y)
-    
-    # Xử lý đổi hướng khi đang di chuyển
-    if new_direction is not None and current_direction is not None and new_direction != current_direction:
-        # Kiểm tra xem có thể đổi hướng không
-        next_x = pacman.rect.x + new_direction[0] * TILE_SIZE
-        next_y = pacman.rect.y + new_direction[1] * TILE_SIZE
-        maze_coord = MazeCoord.nearest_coord((next_x, next_y))
-        
-        if maze_coord is not None and maze_weights[maze_coord.y, maze_coord.x] < MazePart.WALL.weight:
-            # Căn chỉnh vị trí về ô lưới gần nhất trước khi đổi hướng
-            pacman.rect.x = ((pacman.rect.x + TILE_SIZE//2) // TILE_SIZE) * TILE_SIZE
-            pacman.rect.y = ((pacman.rect.y + TILE_SIZE//2) // TILE_SIZE) * TILE_SIZE
+    speed_pixel_per_ms = pacman.speed / 1000  # speed in pixels per millisecond
+    distance = speed_pixel_per_ms * dt
+    current_pos = pacman.rect.topleft
+    if target_pos is None or (abs(current_pos[0] - target_pos[0]) <2 and abs(current_pos[1] - target_pos[1]) <2) or new_direction !=current_direction:
+        potential_x =current_pos[0] + new_direction[0] * TILE_SIZE
+        potential_y =current_pos[1] + new_direction[1] * TILE_SIZE
+        potential_target = (potential_x, potential_y)
+        maze_coord = MazeCoord.nearest_coord(potential_target)
+        if maze_coord is not None and  maze_weights[maze_coord.y,maze_coord.x] < MazePart.WALL.weight:
             current_direction = new_direction
-            target_pos = (next_x, next_y)
-    
+            target_pos = maze_coord.rect.topleft
+        elif target_pos is None:
+            return (0,0),None
+
+
+    if target_pos is not None:
+        move_x = 0
+        move_y =0
+        if current_pos[0] < target_pos[0]:
+            move_x = min (distance, target_pos[0] - current_pos[0])
+        elif current_pos[0] > target_pos[0]:
+            move_x  = max (-distance, target_pos[0] - current_pos[0])
+        if current_pos[1] < target_pos[1]:
+            move_y  =min (distance, target_pos[1] - current_pos[1])
+        elif current_pos[1] > target_pos[1]:
+            move_y  =max (-distance, target_pos[1] - current_pos[1])
+
+        pacman.rect.topleft = (current_pos[0] + move_x, current_pos[1] + move_y)
     return current_direction, target_pos
+
+
+
+
+
+
+
+
+
 def move_pacman_by_keys(
         pacman: Player,
         keys:any,
