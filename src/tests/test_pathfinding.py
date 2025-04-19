@@ -234,32 +234,40 @@ def print_statistics_table(stats_list):
 def write_statistics_to_file(stats_list, algorithm_name):
     """
     Viết vào file csv các thông số thống kê của 5 lần chạy với thuật toán.
+    File sẽ được thêm mới (append) nếu đã tồn tại, không ghi đè lên nội dung cũ.
     """
     try:
-        # Create a valid filename by removing special characters
+        # Tạo tên file hợp lệ bằng cách loại bỏ các ký tự đặc biệt
         safe_name = algorithm_name.lower().replace(' ', '_').replace('*', 'star')
         filename = f"test_{safe_name}.csv"
         
-        # Use an absolute path for the output file
+        # Sử dụng đường dẫn tuyệt đối cho file đầu ra
         output_dir = os.path.join(os.getcwd(), "results")
         
-        # Create the results directory if it doesn't exist
+        # Tạo thư mục results nếu chưa tồn tại
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
             
-        # Full path to the output file
+        # Đường dẫn đầy đủ đến file
         filepath = os.path.join(output_dir, filename)
+        
+        # Kiểm tra xem file đã tồn tại chưa
+        file_exists = os.path.isfile(filepath)
         
         headers = ["Test Case", "Algorithm", "Ghost Type", "Collision", "Duration (s)", "Search Time (s)", 
                   "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"]
         
-        print(f"\nLưu kết quả vào file: {filepath}")
+        print(f"\nĐang ghi kết quả vào file: {filepath}")
         
-        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+        # Mở file ở chế độ append - thêm vào cuối file
+        with open(filepath, 'a', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(headers)
             
-            # Write data rows
+            # Chỉ viết headers nếu file chưa tồn tại
+            if not file_exists:
+                writer.writerow(headers)
+            
+            # Ghi dữ liệu của các lần chạy
             for stats in stats_list:
                 row = [
                     stats["Test Case"],
@@ -308,7 +316,7 @@ def run_algorithm_tests(pathfinder, algorithm_name, simulation_duration=60):
     print(f"\nBảng thống kê các thông số của 5 lần chạy với thuật toán {algorithm_name}:")
     print_statistics_table(all_stats)
     
-    # Write statistics to file
+    # Viết thống kê vào file csv
     write_statistics_to_file(all_stats, algorithm_name)
     
     return all_stats
