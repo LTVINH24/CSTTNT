@@ -60,6 +60,7 @@ class MazeDirection(Enum):
             case _:
                 return (0, 0)
 
+
 @dataclass(unsafe_hash=False)
 class MazeNode:
     """
