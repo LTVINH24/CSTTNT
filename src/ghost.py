@@ -160,7 +160,19 @@ class Ghost(pg.sprite.Sprite, PathListener):
             print("Warning: Ghost has no path to follow.")
             return
         if len(self.path) == 1:
-            if self.waiting_for_path:
+            if not is_snap_within(self.rect.center, self.path[0]):
+                current_location = find_path_containing_coord(
+                    rect_to_maze_coords(self.rect),
+                    self.path_dispatcher.maze_layout.maze_dict,
+                    self.path_dispatcher.maze_layout.maze_shape()
+                )
+                if current_location is None:
+                    print("Warning: Ghost is not currently in a path.")
+                    return
+                self.path_dispatcher.receive_request_for(
+                    listener=self,
+                    start_location=current_location,
+                    )
                 return
             self.path_dispatcher.receive_request_for(
                 listener=self,
@@ -202,10 +214,6 @@ class Ghost(pg.sprite.Sprite, PathListener):
             if other_colliding_sprites:
                 # Collision detected, revert to the previous state
                 self.cumulative_delta_time = previous_cumulative_delta_time
-
-                if self.conflict_cooldown_tracker.is_active():
-                    # Cooldown is active, ignore the collision
-                    return
 
                 # Dispatch a path conflict resolution event
                 self.path_dispatcher.handle_path_conflict_between(

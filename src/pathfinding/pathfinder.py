@@ -195,12 +195,12 @@ class PathListener(Protocol):
     new_path: list[MazeNode] = []
     waiting_for_path: bool = False
 
-    # Cooldown = 10 Frames
+    # Cooldown = 20 Frames
     DEFAULT_CONFLICT_WAIT_TIME: ClassVar[int] = 1000 // FPS * 10
     conflict_cooldown_tracker = CooldownTracker(
         DEFAULT_CONFLICT_WAIT_TIME
         )
-    # Cooldown = 20 Frames
+    # Cooldown = 40 Frames
     DEFAULT_CONFLICT_RESOLUTION_TIME = 1000 // FPS * 20
     resolution_cooldown_tracker = CooldownTracker(
         DEFAULT_CONFLICT_RESOLUTION_TIME
@@ -514,100 +514,3 @@ class PathDispatcher:
                     conflicting_listener=conflicting_listener,
                 ),
             )
-
-    def _handle_path_conflict_between(
-        self,
-        reporting_listener: PathListener,
-        conflicting_listeners: list[PathListener],
-        ) -> None:
-        """
-        Handle path conflicts between the reporting listener and the conflicting listeners.
-        """
-        if not reporting_listener.conflict_cooldown_tracker.is_active():
-            # # Try to solve itself
-            # reporter_edge = reporting_listener.path[:2]
-            # if len(reporter_edge) <= 1:
-            #     raise ValueError(
-            #         "How a listener that isn't even moving have path conflict with others?"
-            #         )
-            # self.receive_request_for(
-            #         listener=reporting_listener,
-            #         start_location=(reporter_edge[1], reporter_edge[0]),
-            #         blocking_edges=frozenset((tuple(reporter_edge),)),
-            #         # If they are still in conflict after receiving a new path, go below
-            #         callback=reporting_listener.conflict_cooldown_tracker.reset,
-            #     )
-            reporting_listener.conflict_cooldown_tracker.reset()
-            return
-        if reporting_listener.conflict_cooldown_tracker.is_paused():
-            # The reporting listener is waiting for conflict resolution
-            return
-        if not reporting_listener.conflict_cooldown_tracker.is_expired():
-            # The time waiting to resolve conflict is still in cooldown
-            return
-
-        # The reporting listener is currently resolving a conflict
-        # Pause the cooldown tracker for the reporting listener
-        reporting_listener.conflict_cooldown_tracker.pause()
-
-        conflict_resolved_for_reporter = False
-        for conflicting_listener in conflicting_listeners:
-            if conflicting_listener.conflict_cooldown_tracker.is_paused():
-                # Either the conflicting listener is handle the conflict with another one
-                # or it failed to resolve the conflict in its last handle_path_conflict call
-                continue
-
-            def release_blocking(
-                reporting_listener: PathListener,
-                conflicting_listener: PathListener = None,
-            ) -> None:
-                """
-                Release the blocking for the reporting and the conflicting listener if specified.
-                """
-                # Resume the cooldown tracker for both listeners
-                reporting_listener.conflict_cooldown_tracker.deactivate()
-                if conflicting_listener is not None:
-                    conflicting_listener.conflict_cooldown_tracker.deactivate()
-
-            # Start checking for path conflict
-            reporter_edge = reporting_listener.path[:2]
-            reportee_edge = conflicting_listener.path[:2]
-            if len(reporter_edge) <= 1:
-                raise ValueError(
-                    "How a not-moving reporting listener can be in conflict with a moving one?"
-                    )
-            if len(reportee_edge) <= 1:
-                # The reporting listener is moving and the conflicting one is not
-                # Lemme find the other way if possible
-
-                # self.receive_request_for(
-                #     listener=reporting_listener,
-                #     start_location=(reporter_edge[1], reporter_edge[0]),
-                #     forced_request=True,
-                #     blocking_edges=[tuple(reporter_edge)],
-                #     callback=partial(
-                #         release_blocking,
-                #         reporting_listener=reporting_listener,
-                #     ),
-                # )
-                # return
-                continue
-
-            # len(reporter_edge) == 2 and len(reportee_edge) == 2:
-            # Both listeners are moving
-
-            self.receive_request_for(
-                listener=reportee_edge,
-                start_location=(reportee_edge[1], reportee_edge[0]),
-                blocking_edges=frozenset((tuple(reporter_edge),)),
-                callback=partial(
-                    release_blocking,
-                    reporting_listener=reporting_listener,
-                    conflicting_listener=conflicting_listener,
-                ),
-            )
-            return
-            # End for loop
-        if not conflict_resolved_for_reporter:
-            # No path conflict was resolved for the reporting listener
-            reporting_listener.conflict_cooldown_tracker.pause()
