@@ -142,7 +142,6 @@ class Ghost(pg.sprite.Sprite, PathListener):
         self.path_dispatcher.receive_request_for(
             listener=self,
             start_location=(self.path[0], self.path[1] if len(self.path) > 1 else None),
-            path_finder=self.path_finder,
             forced_request=True,
             )
 
@@ -166,7 +165,6 @@ class Ghost(pg.sprite.Sprite, PathListener):
             self.path_dispatcher.receive_request_for(
                 listener=self,
                 start_location=(self.path[0], None),
-                path_finder=self.path_finder,
                 )
             return
         if self.path:
@@ -205,10 +203,14 @@ class Ghost(pg.sprite.Sprite, PathListener):
                 # Collision detected, revert to the previous state
                 self.cumulative_delta_time = previous_cumulative_delta_time
 
+                if self.conflict_cooldown_tracker.is_active():
+                    # Cooldown is active, ignore the collision
+                    return
+
                 # Dispatch a path conflict resolution event
                 self.path_dispatcher.handle_path_conflict_between(
                     self,
-                    other_colliding_sprites,
+                    other_colliding_sprites[0],
                 )
                 return
             # Update the ghost's position and path
