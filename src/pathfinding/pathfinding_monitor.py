@@ -22,43 +22,31 @@ os.makedirs(LOGS_DIR, exist_ok=True)
 # Đường dẫn đến file log
 LOGGER_PATH = os.path.join(LOGS_DIR, "pathfinding_monitor.log")
 
-logger = logging.getLogger("shared_pathfinding_logger")
-logger.setLevel(logging.INFO)
-
-if not logger.hasHandlers():
-    handler = logging.FileHandler(LOGGER_PATH)  # Save logs to the specified file
-    formatter = logging.Formatter(
-        '%(asctime)s | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-        )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
 def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
     """
     Decorator to monitor the pathfinding process.
     """
+    logger = logging.getLogger(func.__name__)
+    logger.setLevel(logging.INFO)
+    logger_path = os.path.join(LOGS_DIR, f"{func.__name__}.log")
+
+    if not logger.hasHandlers():
+        handler = logging.FileHandler(logger_path)
+        formatter = logging.Formatter(
+            '%(asctime)s | %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
     def wrapper(*args, **kwargs):
         # Get the function signature and bind arguments to it
         sig = inspect.signature(func)
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()  # Apply default values for missing arguments
 
-        # Print the function arguments for monitoring
-        print(f"Pathfinding: {func.__name__}, ", end="")
-        if "start_location" in bound_args.arguments:
-            start_location: MazeNode = bound_args.arguments["start_location"]
-            print(f"{start_location} to ", end="")
-        else:
-            print("??? to ", end="")
-        if "target_location" in bound_args.arguments:
-            target_location: MazeNode = bound_args.arguments["target_location"]
-            print(f"{target_location}")
-        elif "_target_location" in bound_args.arguments:
-            target_location: MazeNode = bound_args.arguments["_target_location"]
-            print(f"{target_location}")
-        else:
-            print("???")
+        start_location = bound_args.arguments.get("start_location")
+        target_location = bound_args.arguments.get("target_location")
 
         # Start memory and time tracking
         tracemalloc.start()
@@ -92,25 +80,20 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
             'path_weight': path_weight
         }
 
+        def path_as_str(nodes: list[MazeNode]) -> str:
+            if not nodes:
+                return "(empty)"
+            path_str = ""
+            path_str = " => ".join(str(node) for node in nodes)
+            path_str += "(end)"
+            return path_str
         # Log the results
-        logger.info(
-            "%s took %.6fs, expanded %d nodes, path length: %d, " \
-            "path weight: %d, peak memory usage: %d bytes",
-            func.__name__,
-            wrapper.last_stats['search_time'],
-            wrapper.last_stats['expanded_nodes'],
-            wrapper.last_stats['path_length'],
-            wrapper.last_stats['path_weight'],
-            wrapper.last_stats['memory_peak']
+        log_message = (
+            f"from {start_location} to {target_location}, "
+            f"path: {path_as_str(result.path)}"
         )
-
-
-        def print_path(nodes: list[MazeNode]):
-            print("Path: ", end="")
-            for node in nodes:
-                print(f"{node} => ", end="")
-            print("(end)")
-        print_path(result.path)
+        logger.info(log_message)
+        print(f"{func.__name__} - {log_message}")
 
         return result
 
