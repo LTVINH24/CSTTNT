@@ -33,7 +33,6 @@
 
   - After you test all 4 algorithms and receive 4 file *.csv in folder `results\`, you can open this location `tests\` to run file `visualization.ipynb` using Jupyter Notebook or JupyterLab and receive the inspects about the strengths and weaknesses of each pathfinding algorithms in different scenarios.
 
-
 - _Remember to create a new branch for each new feature you want to implement. Pull request to the `main` branch when you are done._ :smiley:
 
 ## To-dos:
