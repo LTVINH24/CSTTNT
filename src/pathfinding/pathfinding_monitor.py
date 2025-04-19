@@ -66,6 +66,20 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
 
         result: PathfindingResult = func(*args, **kwargs)
 
+        # Calculate path length (steps)
+        path_length = len(result.path) - 1 if result.path else 0
+        # Calculate total path weight (if possible)
+        path_weight = 0
+        if len(result.path) > 1:
+            for i in range(len(result.path) - 1):
+                current = result.path[i]
+                next_node = result.path[i + 1]
+                # Find the edge between current and next_node
+                for neighbor, cost in current.neighbors.values():
+                    if neighbor == next_node:
+                        path_weight += cost
+                        break
+
         # Stop memory tracking and calculate peak memory usage
         _, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
@@ -73,17 +87,23 @@ def pathfinding_monitor(func: Pathfinder) -> Pathfinder:
         wrapper.last_stats = {
             'search_time': end_time - start_time,
             'memory_peak': peak,
-            'expanded_nodes': len(result.expanded_nodes)
+            'expanded_nodes': len(result.expanded_nodes),
+            'path_length': path_length,
+            'path_weight': path_weight
         }
 
         # Log the results
         logger.info(
-            "%s took %.6fs, expanded %d nodes, peak memory usage: %d bytes",
+            "%s took %.6fs, expanded %d nodes, path length: %d, " \
+            "path weight: %d, peak memory usage: %d bytes",
             func.__name__,
             wrapper.last_stats['search_time'],
             wrapper.last_stats['expanded_nodes'],
+            wrapper.last_stats['path_length'],
+            wrapper.last_stats['path_weight'],
             wrapper.last_stats['memory_peak']
         )
+
 
         def print_path(nodes: list[MazeNode]):
             print("Path: ", end="")
