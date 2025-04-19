@@ -45,18 +45,16 @@ def depth_first_search_path_finder(
         PathfindingResult:
             An object containing the path from the start to the target and any additional metadata.
     """
-    print(target_location)
     start_path = []
-    if len(start_location) > 1 and start_location[1] is not None:
+    if start_location[1] is not None:
         starting_node = start_location[1]
         start_path = [start_location[0]]
     else:
         starting_node = start_location[0]
     target_node = target_location[0]
     target_second_node = None
-    if len(target_location) > 1 and target_location[1] is not None:
+    if target_location[1] is not None:
         target_second_node = target_location[1]
-    
     stack = [(starting_node, start_path)]
     visited = set()
     expanded_nodes = []
@@ -67,7 +65,12 @@ def depth_first_search_path_finder(
             if target_second_node is not None and target_second_node not in final_path:
                 final_path.append(target_second_node)
             return PathfindingResult(final_path, expanded_nodes)
-        
+        if current_node == target_second_node:
+            final_path = path + [current_node]
+            if target_node is not None and target_node not in final_path:
+                final_path.append(target_node)
+            return PathfindingResult(final_path, expanded_nodes)
+
         if current_node not in visited:
             visited.add(current_node)
             expanded_nodes.append(current_node)
