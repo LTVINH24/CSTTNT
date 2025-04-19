@@ -42,10 +42,10 @@ def breadth_first_search_path_finder(
             An object containing the path from the start to the target and any additional metadata.
     """
 
-    print(target_location)
     start_path = []
-    
-    if len(start_location) > 1 and start_location[1] is not None:
+    expanded_nodes = [start_location[0]]
+    if start_location[1] is not None:
+        expanded_nodes.append(start_location[1])
         starting_node = start_location[1]
         start_path = [start_location[0]]
     else:
@@ -53,19 +53,25 @@ def breadth_first_search_path_finder(
     
     target_node = target_location[0]
     target_second_node = None
-    if len(target_location) > 1 and target_location[1] is not None:
+    if target_location[1] is not None:
         target_second_node = target_location[1]
 
     queue = deque([(starting_node, start_path)])
     visited = set()
-    expanded_nodes = []
+    
 
     while queue:
         current_node, path = queue.popleft()
-        if current_node == target_node or current_node == target_second_node:
+        if current_node == target_node:
             final_path = path + [current_node]
             if target_second_node is not None and target_second_node not in final_path:
                 final_path.append(target_second_node)
+            return PathfindingResult(final_path, expanded_nodes)
+        
+        if current_node == target_second_node:
+            final_path = path + [current_node]
+            if target_node is not None and target_node not in final_path:
+                final_path.append(target_node)
             return PathfindingResult(final_path, expanded_nodes)
         
         if current_node not in visited:

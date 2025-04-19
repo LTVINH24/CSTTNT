@@ -21,7 +21,7 @@ class PathfindingResult:
             The sequence of nodes representing the path from the start to the goal.
         expanded_nodes (list[MazeNode]):
             The list of nodes that were expanded during the pathfinding process.
-"""
+    """
     path: list[MazeNode]
     expanded_nodes: list[MazeNode]
 
@@ -163,14 +163,14 @@ class PathDispatcher:
         player: pg.sprite.Sprite,
         pathfinder: Pathfinder = None, # existing only for backward compatibility
     ):
-        # TODO: Use proper locking mechanism if you need to modify the graph
+        # Use proper locking mechanism if you need to modify the graph
         self.maze_layout = maze_layout
 
         self.player = player
         self.path_finder: Pathfinder = pathfinder or empty_path_finder
         self.listeners: WeakSet[PathListener] = WeakSet()
         self.executor = ThreadPoolExecutor(max_workers=WORKERS)
-
+        self.last_stats = {}
         self.player_position_update_interval = PLAYER_POSITION_UPDATE_INTERVAL
         if self.player.rect is None:
             raise ValueError("Player should have the `rect` attribute.")
@@ -255,7 +255,7 @@ class PathDispatcher:
             listener.waiting_for_path = False
             # Return None
 
-        # TODO: Enable/Disable multithreading for pathfinding here.
+        # Enable/Disable multithreading for pathfinding here.
         self.executor.submit(_pathfinding_task)
         # _pathfinding_task()
 

@@ -60,7 +60,8 @@ class MazeDirection(Enum):
             case _:
                 return (0, 0)
 
-@dataclass(unsafe_hash=True)
+
+@dataclass(unsafe_hash=False)
 class MazeNode:
     """
     Represents a node in a maze, which can be a corner, an dead-end, or an intersection.
@@ -140,10 +141,10 @@ class MazeNode:
         """Create a copy of the MazeNode."""
         return MazeNode(MazeCoord.__copy__(self.pos), self.neighbors.copy())
 
-    # def __eq__(self, other:Self) -> bool:
-    #     if isinstance(other,MazeNode):
-    #         return self.pos ==other.pos
-    #     return False
+    def __eq__(self, other:Self) -> bool:
+        if isinstance(other,MazeNode):
+            return self.pos ==other.pos
+        return False
 
-    # def __hash__(self) -> int:
-    #     return hash(self.pos)
+    def __hash__(self) -> int:
+        return hash(self.pos)

@@ -20,7 +20,6 @@ Notes:
 import sys
 import random
 from collections.abc import Iterable, Generator
-from time import time_ns
 
 import pygame as pg
 # pylint: disable=no-name-in-module
@@ -33,8 +32,9 @@ from src.maze import (
 )
 from src.pathfinding import PathDispatcher, depth_first_search_path_finder
 from src.constant import TILE_SIZE
-from src.ghost import Ghost, GHOST_TYPES
+from src.ghost import Ghost
 from src.player import Player
+from src.ui.game_over import show_game_over_screen
 MIN_GHOST_SPAWN_DISTANCE = 5 * TILE_SIZE
 NUMBER_OF_GHOSTS = 1
 INITIAL_SPEED_MULTIPLIER = 4  # initial speed multiplier for the ghosts
@@ -67,35 +67,40 @@ def run_level():
     screen = pg.display.set_mode(screen_sizes)
     pg.display.set_caption(f"Level {LEVEL}")
     clock = pg.time.Clock()
-
-    # maze level setup
-    maze_level: MazeLevel = set_up_level(
-        screen=screen,
-        level=LEVEL,
-    )
-
-    # pacman setup with random spawn point
-    pacman_spawn = random.choice(maze_level.spawn_points)
-    pacman_position = pacman_spawn.rect.topleft
-    pacman = Player(
+    pacman = None
+    pacman_group = None
+    pinky = None  # Thay bằng tên ghost trong level
+    path_dispatcher = None
+    def initialize_level():
+        nonlocal pacman,pacman_group,pinky,path_dispatcher
+        maze_level: MazeLevel = set_up_level(
+            screen=screen,
+            level=LEVEL,
+        )
+        pacman_spawn = random.choice(maze_level.spawn_points)
+        pacman_position = pacman_spawn.rect.topleft
+        pacman = Player(
         initial_position=pacman_position,
         speed=BASE_SPEED,
-    )
-    pacman_group = pg.sprite.GroupSingle(pacman)
-
-    path_dispatcher = PathDispatcher(
+        )
+        pacman_group = pg.sprite.GroupSingle(pacman)
+        path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=depth_first_search_path_finder, # TODO: replace with your own pathfinding algorithm
-    )
-
-    pinky = set_up_pinky(
+        pathfinder=depth_first_search_path_finder, # replace with your own pathfinding algorithm
+        )
+        pinky = set_up_pinky(   #thay bằng tên ghost trong level
         ghost_group=maze_level.ghosts,
         spawn_points=maze_level.spawn_points,
         path_dispatcher=path_dispatcher,
         pacman_spawn=pacman_spawn
-    )
+        )
+        return maze_level
 
+    # maze level setup
+    maze_level = initialize_level()
+
+    # pacman setup with random spawn point
     while True:
         for event in pg.event.get():
             if event.type == QUIT:
@@ -104,8 +109,16 @@ def run_level():
         delta_time = clock.tick(60) # in ms
         if pinky and check_collision(pinky, pacman):
             print("Game Over! Pinky đã bắt được Pacman!")
-            pg.time.wait(1000)  # Đợi 1 giây
-            sys.exit() 
+            pg.time.wait(5)
+            screen.fill((0, 0, 0))
+            render_maze_level(maze_level=maze_level, screen=screen, dt=0)
+            pacman_group.draw(screen)
+            choice = show_game_over_screen(screen)
+            if choice =="replay":
+                maze_level = initialize_level()
+                continue
+            elif choice == "exit":
+                sys.exit()
         # Refresh the screen
         screen.fill((0, 0, 0))
 
@@ -156,7 +169,7 @@ def set_up_pinky(
     pinky = Ghost(
         initial_position=spawn_point,
         speed=BASE_SPEED,
-        ghost_type="pinky",  # Chỉ định loại ma là Blinky (ma đỏ)
+        ghost_type="pinky",  # Chỉ định loại ma là Pinky (ma hồng)
         ghost_group=ghost_group,
         path_dispatcher=path_dispatcher,
     )

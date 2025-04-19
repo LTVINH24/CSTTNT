@@ -51,16 +51,16 @@ from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
 
 NUMBER_OF_GHOSTS = 1
-INITIAL_SPEED_MULTIPLIER = 8  # initial speed multiplier for the ghosts
+INITIAL_SPEED_MULTIPLIER = 4  # initial speed multiplier for the ghosts
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # base speed in pixels per second
 SCREEN_SIZE = (800, 600)
 LEVEL = 6
-
+PLAYER_SPEED = 8 * TILE_SIZE  
 PATH_FINDER_BY_GHOST = {
-    "inky": breadth_first_search_path_finder,
-    "clyde": ucs_pathfinder,
-    "pinky": depth_first_search_path_finder,
     "blinky": a_star_pathfinder,
+    "clyde": ucs_pathfinder,
+    "inky": breadth_first_search_path_finder,
+    "pinky": depth_first_search_path_finder,
 }
 
 def run_level(enable_movement_by_mouse: bool = False) -> None:
@@ -75,7 +75,8 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
     screen = pg.display.set_mode(screen_sizes)
     pg.display.set_caption("Level 6")
     clock = pg.time.Clock()
-
+    pacman_direction = None
+    pacman_target_pos = None
     # maze level setup
     maze_level: MazeLevel = set_up_level(
         screen=screen,
@@ -90,7 +91,7 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
         pacman_position = random.choice(maze_level.player_spawn_points).rect.topleft
     pacman = Player(
         initial_position=pacman_position,
-        speed=BASE_SPEED,
+        speed=PLAYER_SPEED,
     )
     pacman_group = pg.sprite.GroupSingle(pacman)
 
@@ -117,7 +118,15 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
                 )
 
         delta_time = clock.tick(60) # in ms
-
+        keys = pg.key.get_pressed()
+        pacman_direction, pacman_target_pos = handle_pacman_movement(
+            pacman=pacman,
+            keys=keys,
+            maze_weights=maze_level.maze_layout.maze_weight,
+            current_direction=pacman_direction,
+            target_pos=pacman_target_pos,
+            dt=delta_time
+        )
         # Refresh the screen
         screen.fill((0, 0, 0))
 
@@ -135,6 +144,88 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
         # Update the screen
         pg.display.flip()
 
+
+
+    
+def handle_pacman_movement(
+        pacman: Player,
+        keys: any,
+        maze_weights: np.ndarray[np.uint16],
+        current_direction :tuple[int,int] = None,
+        target_pos: tuple[int, int] = None,
+        dt:float = 0
+) ->tuple[tuple[int, int], tuple[int, int]]:
+    if current_direction is None:
+        current_direction = (0, 0)
+    new_direction = current_direction
+    if keys[pg.K_UP]:
+        new_direction = (0, -1)
+    elif keys[pg.K_DOWN]:
+        new_direction = (0, 1)
+    elif keys[pg.K_LEFT]:
+        new_direction = (-1, 0)
+    elif keys[pg.K_RIGHT]:  
+        new_direction = (1, 0)
+    
+    speed_pixel_per_ms = pacman.speed / 1000  # speed in pixels per millisecond
+    distance = speed_pixel_per_ms * dt
+    current_pos = pacman.rect.topleft
+    if target_pos is None or (abs(current_pos[0] - target_pos[0]) <2 and abs(current_pos[1] - target_pos[1]) <2) or new_direction !=current_direction:
+        potential_x =current_pos[0] + new_direction[0] * TILE_SIZE
+        potential_y =current_pos[1] + new_direction[1] * TILE_SIZE
+        potential_target = (potential_x, potential_y)
+        maze_coord = MazeCoord.nearest_coord(potential_target)
+        if maze_coord is not None and  maze_weights[maze_coord.y,maze_coord.x] < MazePart.WALL.weight:
+            current_direction = new_direction
+            target_pos = maze_coord.rect.topleft
+        elif target_pos is None:
+            return (0,0),None
+
+
+    if target_pos is not None:
+        move_x = 0
+        move_y =0
+        if current_pos[0] < target_pos[0]:
+            move_x = min (distance, target_pos[0] - current_pos[0])
+        elif current_pos[0] > target_pos[0]:
+            move_x  = max (-distance, target_pos[0] - current_pos[0])
+        if current_pos[1] < target_pos[1]:
+            move_y  =min (distance, target_pos[1] - current_pos[1])
+        elif current_pos[1] > target_pos[1]:
+            move_y  =max (-distance, target_pos[1] - current_pos[1])
+
+        pacman.rect.topleft = (current_pos[0] + move_x, current_pos[1] + move_y)
+    return current_direction, target_pos
+
+
+
+
+
+
+
+
+
+def move_pacman_by_keys(
+        pacman: Player,
+        keys:any,
+        maze_weights: np.ndarray[np.uint16]) -> None:
+    current_position = pacman.rect.topleft
+    new_position = list(current_position)
+    if keys[pg.K_UP]:
+        new_position[1] -= TILE_SIZE
+    elif keys[pg.K_DOWN]:
+        new_position[1] += TILE_SIZE
+    elif keys[pg.K_LEFT]:
+        new_position[0] -= TILE_SIZE
+    elif keys[pg.K_RIGHT]:
+        new_position[0] += TILE_SIZE
+    else:
+        # No movement keys pressed
+        return
+    maze_coord = MazeCoord.nearest_coord(new_position)
+    if maze_coord is not None and maze_weights[maze_coord.y, maze_coord.x] < MazePart.WALL.weight:
+        # Move pacman to the new position
+        pacman.rect.topleft = maze_coord.rect.topleft
 def move_pacman_by_mouse(
         pacman: Player,
         mouse_pos: tuple[int, int],

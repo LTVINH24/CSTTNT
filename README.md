@@ -17,6 +17,22 @@
 
 - For permormance assessment, you `src/pathfinding/pathfinding_monitor.py` and adjust as you need.
 
+- For evaluating and comparing the performance of those algorithms, you can run `python -m src.tests.test_main`. 
+
+  - This will display a list of algorithms, and you can select any algorithms to test. 
+  - The program will automatically run 5 different test cases with various spawn positions of Pacman and Ghost.
+  - These are 5 sceniors:
+    * 1. Minimum Euclidean distance between spawn points.
+    * 2. Maximum Euclidean distance between spawn points.
+    * 3. Second smallest Euclidean distance.
+    * 4. Minimum X-axis difference between spawn points.
+    * 5. Pacman at highest position (min Y), Ghost at lowest position (max Y).
+  - You will recieve file *.csv in folder `results\` after run one algorithms.
+
+- For visualization:
+
+  - After you test all 4 algorithms and receive 4 file *.csv in folder `results\`, you can open this location `tests\` to run file `visualization.ipynb` using Jupyter Notebook or JupyterLab and receive the inspects about the strengths and weaknesses of each pathfinding algorithms in different scenarios.
+
 - _Remember to create a new branch for each new feature you want to implement. Pull request to the `main` branch when you are done._ :smiley:
 
 ## To-dos:
