@@ -60,7 +60,8 @@ class MazeDirection(Enum):
             case _:
                 return (0, 0)
 
-@dataclass()
+
+@dataclass(unsafe_hash=False)
 class MazeNode:
     """
     Represents a node in a maze, which can be a corner, an dead-end, or an intersection.

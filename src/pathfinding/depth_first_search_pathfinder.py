@@ -1,17 +1,16 @@
 """
 TODO: Provide a reasonable description for your module.
 """
-# TODO: Remove `np` if not used
+# Remove `np` if not used
 # pylint: disable=unused-import
 import numpy as np
 # pylint: enable=unused-import
 from src.maze import MazeNode
-from src.maze import MazeDirection
 
 from .pathfinder import Pathfinder, PathfindingResult
 from .pathfinding_monitor import pathfinding_monitor
 
-# TODO: Remove the `-` prefix from the function name and add a proper name.
+# Remove the `-` prefix from the function name and add a proper name.
 @pathfinding_monitor
 def depth_first_search_path_finder(
     _maze_graph: list[MazeNode],
@@ -80,5 +79,4 @@ def depth_first_search_path_finder(
                     stack.append((neighbor, path + [current_node]))
     return PathfindingResult([], expanded_nodes)
     
-   
 assert isinstance(depth_first_search_path_finder, Pathfinder)

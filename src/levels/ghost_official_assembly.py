@@ -57,10 +57,10 @@ SCREEN_SIZE = (800, 600)
 LEVEL = 6
 
 PATH_FINDER_BY_GHOST = {
-    "blinky": breadth_first_search_path_finder,
+    "inky": breadth_first_search_path_finder,
     "clyde": ucs_pathfinder,
-    "inky": depth_first_search_path_finder,
-    "pinky": a_star_pathfinder,
+    "pinky": depth_first_search_path_finder,
+    "blinky": a_star_pathfinder,
 }
 
 def run_level(enable_movement_by_mouse: bool = False) -> None:

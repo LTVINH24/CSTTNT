@@ -2,10 +2,8 @@
 Thuật toán Uniform Cost Search (UCS) cho bài toán tìm đường đi.
 
 UCS là thuật toán tìm kiếm theo đơn giá, chọn mở rộng nút có chi phí thấp nhất từ 
-điểm bắt đầu. Khác với thuật toán A*, UCS không sử dụng hàm heuristic để ước tính 
-khoảng cách đến đích.
+điểm bắt đầu. Khác với thuật toán A*, UCS không sử dụng hàm heuristic.
 """
-import time
 from queue import PriorityQueue
 
 from src.maze import MazeNode
@@ -14,150 +12,83 @@ from .pathfinding_monitor import pathfinding_monitor
 
 @pathfinding_monitor
 def ucs_pathfinder(
-    maze_graph: list[MazeNode],
+    _: list[MazeNode],
     start_location: tuple[MazeNode, MazeNode | None],
     target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
-    """
-    Thuật toán Uniform Cost Search (UCS) tìm đường đi từ điểm bắt đầu đến điểm đích trong mê cung.
-    
-    UCS mở rộng các nút theo thứ tự chi phí đường đi từ nút xuất phát, luôn chọn nút có
-    chi phí thấp nhất để mở rộng tiếp.
-    
-    Args:
-        maze_graph (list[MazeNode]): Đồ thị biểu diễn mê cung.
-        start_location (tuple[MazeNode, MazeNode | None]): Vị trí bắt đầu.
-        target_location (tuple[MazeNode, MazeNode | None]): Vị trí đích.
+    """Thuật toán Uniform Cost Search (UCS) tìm đường đi."""
+    # Xác định điểm bắt đầu
+    start_path = []
+    if start_location[1] is not None:
+        starting_node = start_location[1]
+        start_path = [start_location[0]]
+    else:
+        starting_node = start_location[0]
         
-    Returns:
-        PathfindingResult: Kết quả tìm đường, bao gồm đường đi và các nút đã mở rộng.
-    """
-    # Lấy node bắt đầu và node đích
-    start_node = start_location[0]
-    if len(start_location) > 1 and start_location[1] is not None:
-        start_node = start_location[1]
+    # Xác định điểm đích
     target_node = target_location[0]
+    target_second_node = None
+    if target_location[1] is not None:
+        target_second_node = target_location[1]
     
-    # Kiểm tra nếu đã ở điểm đích
-    if start_node == target_node:
-        return PathfindingResult([start_node], [start_node])
+    # Khởi tạo cấu trúc dữ liệu
+    open_set = PriorityQueue()
+    closed_set = set()
+    expanded_nodes = [starting_node]
     
-    # Bảng tra cứu nhanh từ ID sang node
-    node_lookup = {id(node): node for node in maze_graph}
-    
-    # Khởi tạo các tập hợp và danh sách
-    open_set = PriorityQueue()  # Danh sách mở
-    closed_set = set()          # Danh sách đóng
-    in_open_set = set()         # Kiểm tra node trong open_set
-    expanded_nodes = [start_node]  # Node đã mở rộng
-    
-    # Lưu đường đi và chi phí
-    came_from = {}
-    g_score = {id(node): float('inf') for node in maze_graph}
-    
-    # Khởi tạo node bắt đầu
-    start_id = id(start_node)
-    g_score[start_id] = 0
-    
-    # Thêm node bắt đầu vào danh sách mở
+    # Thêm node bắt đầu vào hàng đợi ưu tiên
+    # (cost, counter, node, path_so_far)
     counter = 0
-    open_set.put((0, counter, start_id))
-    in_open_set.add(start_id)
+    open_set.put((0, counter, starting_node, start_path))
     
-    # Lưu node gần đích nhất (cho trường hợp không tìm được đường đi)
-    best_node = start_node
-    best_score = float('inf')
+    # Theo dõi chi phí tới mỗi node
+    cost_so_far = {starting_node: 0}
     
-    # Giới hạn thời gian và số lần lặp
-    start_time = time.time()
-    max_time = 2  # Giới hạn thời gian tối đa (giây)
-    iterations = 0
-    max_iterations = 100  # Giới hạn số lần lặp tối đa
-    
-    # Vòng lặp chính
-    while not open_set.empty() and iterations < max_iterations:
-        # Kiểm tra thời gian thực thi
-        if time.time() - start_time > max_time:
-            # Trả về đường đi tốt nhất tìm được nếu hết thời gian
-            if best_node != start_node:
-                path = reconstruct_path(came_from, id(best_node), node_lookup)
-                return PathfindingResult(path, expanded_nodes)
-            break
+    while not open_set.empty():
+        # Lấy node có chi phí thấp nhất
+        cost, _, current, path = open_set.get()
         
-        iterations += 1
+        # Kiểm tra đích
+        if current == target_node:
+            final_path = path + [current]
+            if target_second_node is not None and target_second_node not in final_path:
+                final_path.append(target_second_node)
+            return PathfindingResult(final_path, expanded_nodes)
+            
+        if target_second_node and current == target_second_node:
+            final_path = path + [current]
+            if target_node not in final_path:
+                final_path.append(target_node)
+            return PathfindingResult(final_path, expanded_nodes)
         
-        # Lấy node có g_score thấp nhất (chi phí thấp nhất từ điểm xuất phát)
-        _, _, current_id = open_set.get(block=False)
-        current = node_lookup[current_id]
-        in_open_set.remove(current_id)
-        
-        # Nếu đã xét node này rồi, bỏ qua
-        if current_id in closed_set:
+        # Bỏ qua nếu đã xét
+        if current in closed_set:
             continue
-        
-        # Nếu đã đến đích
-        if current_id == id(target_node):
-            path = reconstruct_path(came_from, current_id, node_lookup)
-            # Thêm target_node[1] vào đường đi nếu tồn tại
-            if len(target_location) > 1 and target_location[1] is not None:
-                path.append(target_location[1])
-            return PathfindingResult(path, expanded_nodes)
-        
-        # Đánh dấu node hiện tại đã xét
-        closed_set.add(current_id)
+            
+        # Đánh dấu đã xét
+        closed_set.add(current)
         
         # Xét các node kề
-        if not hasattr(current, 'neighbors'):
-            continue  # Bỏ qua node không có thuộc tính neighbors
-            
-        for direction, neighbor_data in current.neighbors.items():
-            if not neighbor_data or len(neighbor_data) < 2:
+        for neighbor, edge_cost in current.neighbors.values():
+            if neighbor in closed_set:
                 continue
-            
-            neighbor, cost = neighbor_data
-            neighbor_id = id(neighbor)
-            
-            if neighbor_id in closed_set:
-                continue
-            
-            # Tính toán chi phí mới
-            new_g_score = g_score[current_id] + cost
+                
+            # Tính tổng chi phí mới
+            new_cost = cost + edge_cost
             
             # Nếu đường đi mới tốt hơn
-            if new_g_score < g_score[neighbor_id]:
-                came_from[neighbor_id] = current_id
-                g_score[neighbor_id] = new_g_score
+            if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
+                cost_so_far[neighbor] = new_cost
                 
-                # Lưu node có chi phí thấp nhất (cho trường hợp không tìm được đường đi)
-                if neighbor_id == id(target_node) or new_g_score < best_score:
-                    best_node = neighbor
-                    best_score = new_g_score
-                
-                # Thêm vào danh sách mở nếu chưa có
-                if neighbor_id not in in_open_set:
+                # Thêm vào expanded_nodes nếu chưa có
+                if neighbor not in expanded_nodes:
                     expanded_nodes.append(neighbor)
-                    counter += 1
-                    open_set.put((new_g_score, counter, neighbor_id))
-                    in_open_set.add(neighbor_id)
+                
+                # Thêm vào queue
+                counter += 1
+                open_set.put((new_cost, counter, neighbor, path + [current]))
     
-    # Nếu không tìm thấy đường đi hoàn chỉnh, trả về đường đi tốt nhất đã tìm được
-    if best_node != start_node:
-        path = reconstruct_path(came_from, id(best_node), node_lookup)
-        return PathfindingResult(path, expanded_nodes)
-    
-    # Nếu không tìm được đường đi nào
-    return PathfindingResult([start_node], expanded_nodes)
-
-def reconstruct_path(came_from, end_node_id, node_lookup):
-    """Tạo lại đường đi từ điểm bắt đầu đến điểm kết thúc"""
-    path = [node_lookup[end_node_id]]
-    current_id = end_node_id
-    
-    while current_id in came_from:
-        current_id = came_from[current_id]
-        path.append(node_lookup[current_id])
-    
-    path.reverse()
-    return path
+    # Không tìm thấy đường đi
+    return PathfindingResult(start_path, expanded_nodes)
 
 assert isinstance(ucs_pathfinder, Pathfinder)
