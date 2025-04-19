@@ -43,8 +43,9 @@ def breadth_first_search_path_finder(
     """
 
     start_path = []
-    
+    expanded_nodes = [start_location[0]]
     if start_location[1] is not None:
+        expanded_nodes.append(start_location[1])
         starting_node = start_location[1]
         start_path = [start_location[0]]
     else:
@@ -57,7 +58,7 @@ def breadth_first_search_path_finder(
 
     queue = deque([(starting_node, start_path)])
     visited = set()
-    expanded_nodes = []
+    
 
     while queue:
         current_node, path = queue.popleft()
