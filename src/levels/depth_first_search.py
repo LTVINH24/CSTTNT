@@ -20,7 +20,6 @@ Notes:
 import sys
 import random
 from collections.abc import Iterable, Generator
-from time import time_ns
 
 import pygame as pg
 # pylint: disable=no-name-in-module
@@ -33,7 +32,7 @@ from src.maze import (
 )
 from src.pathfinding import PathDispatcher, depth_first_search_path_finder
 from src.constant import TILE_SIZE
-from src.ghost import Ghost, GHOST_TYPES
+from src.ghost import Ghost
 from src.player import Player
 from src.ui.game_over import show_game_over_screen
 MIN_GHOST_SPAWN_DISTANCE = 5 * TILE_SIZE
@@ -88,7 +87,7 @@ def run_level():
         path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=depth_first_search_path_finder, # TODO: replace with your own pathfinding algorithm
+        pathfinder=depth_first_search_path_finder, # replace with your own pathfinding algorithm
         )
         pinky = set_up_pinky(   #thay bằng tên ghost trong level
         ghost_group=maze_level.ghosts,

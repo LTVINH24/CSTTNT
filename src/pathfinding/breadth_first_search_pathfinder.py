@@ -21,10 +21,6 @@ def breadth_first_search_path_finder(
     BFS explores all neighbors at the present depth before moving on to nodes at the next depth level. 
     It uses a queue to keep track of nodes to be explored, and visits the earliest discovered node first.
     """
-    # Bắt đầu theo dõi bộ nhớ và thời gian
-    tracemalloc.start()
-    start_time = time.time()
-
     start_path = []
     
     if len(start_location) > 1 and start_location[1] is not None:
@@ -42,20 +38,7 @@ def breadth_first_search_path_finder(
     if starting_node == target_node:
         final_path = start_path + [starting_node]
         if target_second_node is not None and target_second_node not in final_path:
-            final_path.append(target_second_node)
-            
-        # Lấy thông tin bộ nhớ và thời gian
-        _, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        end_time = time.time()
-        
-        # Lưu thống kê
-        breadth_first_search_path_finder.last_stats = {
-            'search_time': end_time - start_time,
-            'memory_peak': peak,
-            'expanded_nodes': 1
-        }
-        
+            final_path.append(target_second_node)    
         return PathfindingResult(final_path, [starting_node])
 
     queue = deque([(starting_node, start_path)])
@@ -69,18 +52,6 @@ def breadth_first_search_path_finder(
             
             if target_second_node is not None and target_second_node not in final_path:
                 final_path.append(target_second_node)
-                
-            # Lấy thông tin bộ nhớ và thời gian
-            _, peak = tracemalloc.get_traced_memory()
-            tracemalloc.stop()
-            end_time = time.time()
-            
-            # Lưu thống kê
-            breadth_first_search_path_finder.last_stats = {
-                'search_time': end_time - start_time,
-                'memory_peak': peak,
-                'expanded_nodes': len(expanded_nodes)
-            }
             
             return PathfindingResult(final_path, expanded_nodes)
         
@@ -91,19 +62,6 @@ def breadth_first_search_path_finder(
             for neighbor, _ in current_node.neighbors.values():
                 if neighbor not in visited:
                     queue.append((neighbor, path + [current_node]))
-
-    # Nếu không tìm được đường đi
-    # Lấy thông tin bộ nhớ và thời gian
-    _, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
-    end_time = time.time()
-    
-    # Lưu thống kê
-    breadth_first_search_path_finder.last_stats = {
-        'search_time': end_time - start_time,
-        'memory_peak': peak,
-        'expanded_nodes': len(expanded_nodes)
-    }
 
     return PathfindingResult([], expanded_nodes)
 

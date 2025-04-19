@@ -86,7 +86,7 @@ def run_level():
         path_dispatcher = PathDispatcher(
             maze_layout=maze_level.maze_layout,
             player=pacman,
-            pathfinder=a_star_pathfinder, # TODO: replace with your own pathfinding algorithm
+            pathfinder=a_star_pathfinder, # replace with your own pathfinding algorithm
         )
         blinky = set_up_blinky(   #thay bằng tên ghost trong level
             ghost_group=maze_level.ghosts,

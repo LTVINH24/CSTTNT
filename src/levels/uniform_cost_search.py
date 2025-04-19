@@ -60,7 +60,9 @@ def calculate_distance(pos1, pos2):
 
 def run_level():
     # Thiết lập pygame
+    # pylint: disable=no-member
     pg.init()
+    # pylint: enable=no-member
     screen_sizes = ARBITARY_SCREEN_SIZES
     screen = pg.display.set_mode(screen_sizes)
     pg.display.set_caption(f"Clyde (UCS) - Level {LEVEL}")
@@ -87,7 +89,7 @@ def run_level():
         path_dispatcher = PathDispatcher(
             maze_layout=maze_level.maze_layout,
             player=pacman,
-            pathfinder=ucs_pathfinder, # TODO: replace with your own pathfinding algorithm
+            pathfinder=ucs_pathfinder, #replace with your own pathfinding algorithm
         )
         clyde = set_up_clyde(   #thay bằng tên ghost trong level
             ghost_group=maze_level.ghosts,

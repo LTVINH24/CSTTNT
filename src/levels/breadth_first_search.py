@@ -22,7 +22,6 @@ Notes:
 import sys
 import random
 from collections.abc import Iterable, Generator
-from time import time_ns
 
 import pygame as pg
 # pylint: disable=no-name-in-module
@@ -35,11 +34,12 @@ from src.maze import (
 )
 from src.pathfinding import PathDispatcher, breadth_first_search_path_finder
 from src.constant import TILE_SIZE
-from src.ghost import Ghost, GHOST_TYPES
+from src.ghost import Ghost
 from src.player import Player
 from src.ui.game_over import show_game_over_screen
 
-MIN_GHOST_SPAWN_DISTANCE = 5 * TILE_SIZE # the minimum distance the ghost(s) can be spawned from Pac-Man's position
+MIN_GHOST_SPAWN_DISTANCE = 5 * TILE_SIZE
+# the minimum distance the ghost(s) can be spawned from Pac-Man's position
 NUMBER_OF_GHOSTS = 1 # number of ghosts spawned in the level applying this algorithm 
 INITIAL_SPEED_MULTIPLIER = 4  # initial speed multiplier for the ghosts
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # base speed in pixels per second
