@@ -152,6 +152,8 @@ class Ghost(pg.sprite.Sprite, PathListener):
 
         Time delta is in milliseconds. Speed is pixels per second.
         """
+        if self.is_waiting_for_path_conflict_resolution():
+            return
         if self.new_path:
             self.path = self.new_path
             self.new_path = []
@@ -202,6 +204,12 @@ class Ghost(pg.sprite.Sprite, PathListener):
             if other_colliding_sprites:
                 # Collision detected, revert to the previous state
                 self.cumulative_delta_time = previous_cumulative_delta_time
+
+                # Dispatch a path conflict resolution event
+                self.path_dispatcher.handle_path_conflict_between(
+                    self,
+                    other_colliding_sprites,
+                )
                 return
             # Update the ghost's position and path
             self.path = new_path
