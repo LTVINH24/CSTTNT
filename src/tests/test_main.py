@@ -39,10 +39,10 @@ def main():
     """Main function to display menu and run the selected pathfinding algorithm tests."""
     # Map algorithm numbers to algorithm functions and names
     algorithms = {
-        1: (a_star_pathfinder, "A*"),
-        2: (breadth_first_search_path_finder, "BFS"),
-        3: (depth_first_search_path_finder, "DFS"),
-        4: (ucs_pathfinder, "UCS")
+        1: (breadth_first_search_path_finder, "BFS"),
+        2: (depth_first_search_path_finder, "DFS"),
+        3: (ucs_pathfinder, "UCS"),
+        4: (a_star_pathfinder, "A*")
     }
     
     while True:
