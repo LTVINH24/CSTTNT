@@ -51,11 +51,11 @@ from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
 
 NUMBER_OF_GHOSTS = 1
-INITIAL_SPEED_MULTIPLIER = 8  # initial speed multiplier for the ghosts
+INITIAL_SPEED_MULTIPLIER = 4  # initial speed multiplier for the ghosts
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # base speed in pixels per second
 SCREEN_SIZE = (800, 600)
 LEVEL = 6
-
+PLAYER_SPEED = 8 * TILE_SIZE  
 PATH_FINDER_BY_GHOST = {
     "blinky": a_star_pathfinder,
     "clyde": ucs_pathfinder,
@@ -91,7 +91,7 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
         pacman_position = random.choice(maze_level.player_spawn_points).rect.topleft
     pacman = Player(
         initial_position=pacman_position,
-        speed=BASE_SPEED,
+        speed=PLAYER_SPEED,
     )
     pacman_group = pg.sprite.GroupSingle(pacman)
 
