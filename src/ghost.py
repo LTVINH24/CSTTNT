@@ -1,12 +1,12 @@
 """
-This module defines the `Ghost` class, which represents a ghost character in the Pacman game. 
-The `Ghost` class is responsible for managing the ghost's position, movement, and interaction 
+This module defines the `Ghost` class, which represents a ghost character in the Pacman game.
+The `Ghost` class is responsible for managing the ghost's position, movement, and interaction
 with the maze.
 It supports pathfinding and movement updates based on a given speed and path dispatcher.
 
 Classes:
     Ghost:
-        A subclass of `pygame.sprite.Sprite` and `PathListener` that represents a ghost character 
+        A subclass of `pygame.sprite.Sprite` and `PathListener` that represents a ghost character
         in the game. It handles movement, pathfinding, and interactions with the maze.
 Constants:
     GHOST_TYPES (set): A set of predefined ghost types ("blinky", "clyde", "inky", "pinky").
@@ -74,6 +74,7 @@ class Ghost(pg.sprite.Sprite, PathListener):
         else:
             # Add the ghost to the provided group
             pg.sprite.Sprite.__init__(self, ghost_group)
+        self.group = ghost_group
 
         # Deal with ghost type
         if ghost_type is None:
@@ -141,7 +142,6 @@ class Ghost(pg.sprite.Sprite, PathListener):
         self.path_dispatcher.receive_request_for(
             listener=self,
             start_location=(self.path[0], self.path[1] if len(self.path) > 1 else None),
-            path_finder=self.path_finder,
             forced_request=True,
             )
 
@@ -151,6 +151,8 @@ class Ghost(pg.sprite.Sprite, PathListener):
 
         Time delta is in milliseconds. Speed is pixels per second.
         """
+        if self.is_waiting_for_path_conflict_resolution():
+            return
         if self.new_path:
             self.path = self.new_path
             self.new_path = []
@@ -158,15 +160,28 @@ class Ghost(pg.sprite.Sprite, PathListener):
             print("Warning: Ghost has no path to follow.")
             return
         if len(self.path) == 1:
-            if self.waiting_for_path:
+            if not is_snap_within(self.rect.center, self.path[0]):
+                current_location = find_path_containing_coord(
+                    rect_to_maze_coords(self.rect),
+                    self.path_dispatcher.maze_layout.maze_dict,
+                    self.path_dispatcher.maze_layout.maze_shape()
+                )
+                if current_location is None:
+                    print("Warning: Ghost is not currently in a path.")
+                    return
+                self.path_dispatcher.receive_request_for(
+                    listener=self,
+                    start_location=current_location,
+                    )
                 return
             self.path_dispatcher.receive_request_for(
                 listener=self,
                 start_location=(self.path[0], None),
-                path_finder=self.path_finder,
                 )
             return
         if self.path:
+            previous_cumulative_delta_time = self.cumulative_delta_time
+
             _moving_distance: int
             if dt * self.speed // THOUSAND >= ONE_PIXEL:
                 _moving_distance = dt * self.speed // THOUSAND
@@ -183,10 +198,49 @@ class Ghost(pg.sprite.Sprite, PathListener):
                 _moving_distance = self.cumulative_delta_time * self.speed // THOUSAND
                 self.cumulative_delta_time = 0
 
+            # XXX: Teleporting to the new position, bypassing other guys if frame rate is too low
+            #      Just a reminder, should not be a big deal
             new_path, new_center = move_along_path(
                 self.rect.center,
                 self.path,
                 max(_moving_distance, 1)
                 )
+
+            # Check for collisions with other sprites
+            checking_rect = pg.Rect(self.rect)
+            checking_rect.center = new_center
+            colliding_sprites = sprites_collided_with_rect(checking_rect, self.group)
+            other_colliding_sprites = [sprite for sprite in colliding_sprites if sprite is not self]
+            if other_colliding_sprites:
+                # Collision detected, revert to the previous state
+                self.cumulative_delta_time = previous_cumulative_delta_time
+
+                # Dispatch a path conflict resolution event
+                self.path_dispatcher.handle_path_conflict_between(
+                    self,
+                    other_colliding_sprites[0],
+                )
+                return
+            # Update the ghost's position and path
             self.path = new_path
             self.rect.center = new_center
+
+def sprites_collided_with_rect(
+        rect: pg.Rect,
+        group: pg.sprite.Group = None
+    ) -> list[pg.sprite.Sprite]:
+    """
+    Check if the given rectangle collides with any sprite in the specified group.
+
+    If the group is None, it returns an empty list.
+
+    Args:
+        rect (pg.Rect): The rectangle to check for collisions.
+        group (pg.sprite.Group, optional): The group of sprites to check against. Defaults to None.
+    
+    Returns:
+        list[pg.sprite.Sprite]: A list of sprites from the group that collide with the rectangle.
+    """
+    if group is None:
+        return []
+    return rect.collideobjectsall(group.sprites())
