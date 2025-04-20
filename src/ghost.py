@@ -160,6 +160,8 @@ class Ghost(pg.sprite.Sprite, PathListener):
             print("Warning: Ghost has no path to follow.")
             return
         if len(self.path) == 1:
+            if self.waiting_for_path:
+                return
             if not is_snap_within(self.rect.center, self.path[0]):
                 current_location = find_path_containing_coord(
                     rect_to_maze_coords(self.rect),
