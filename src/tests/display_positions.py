@@ -1,3 +1,6 @@
+"""
+Module này dùng để hiện thị vị trí ban đầu của các trường hợp test case.
+"""
 import time
 import math
 import sys
@@ -6,7 +9,6 @@ from src.maze import set_up_level, render_maze_level
 from src.player import Player
 from src.ghost import Ghost
 from src.constant import TILE_SIZE
-from src.pathfinding import PathDispatcher
 
 def euclidean_distance(sp1, sp2):
     """
@@ -31,7 +33,10 @@ def find_min_x_pair(spawn_points):
     return best_pair
 
 def find_y_pair(spawn_points):
-    """Tìm spawn với Y nhỏ nhất cho Pac-Man (cao nhất màn hình) và Y lớn nhất cho Ghost trong test case 5."""
+    """
+    Tìm spawn với Y nhỏ nhất cho Pac-Man (cao nhất màn hình) 
+    và Y lớn nhất cho Ghost trong test case 5.
+    """
     pacman_spawn = min(spawn_points, key=lambda sp: sp.rect.centery)
     ghost_spawn = max(spawn_points, key=lambda sp: sp.rect.centery)
     return pacman_spawn, ghost_spawn
@@ -66,7 +71,7 @@ def select_spawn_pair(maze_level, test_case: int):
     if test_case == 2:
         best_pair = find_max_x_pair(spawn_points)
         return spawn_points[best_pair[0]], spawn_points[best_pair[1]]
-    
+
     # Test case 4: chênh lệch X nhỏ nhất
     if test_case == 4:
         best_pair = find_min_x_pair(spawn_points)
@@ -84,7 +89,7 @@ def select_spawn_pair(maze_level, test_case: int):
             d = euclidean_distance(spawn_points[i], spawn_points[j])
             pairs.append(((i, j), d))
     pairs_sorted = sorted(pairs, key=lambda x: x[1])
-    
+
     idx_pair = None
     # Chọn cặp spawn dựa trên test case còn lại
     if len(pairs_sorted) == 1:
@@ -113,83 +118,86 @@ def display_test_positions():
     Mỗi test case hiển thị trong 5 giây.
     """
     # Khởi tạo pygame
+    # pylint: disable=no-member
     pg.init()
+    # pylint: enable=no-member
     screen = pg.display.set_mode((800, 600))
     clock = pg.time.Clock()
-    
+
     # Khởi tạo font để hiển thị thông tin
-    font = pg.font.SysFont('Arial', 20)
-    title_font = pg.font.SysFont('Arial', 24, bold=True)
-    
+    font = pg.font.SysFont('Arial', 15)
+    title_font = pg.font.SysFont('Arial', 20, bold=True)
+
     # Tạo maze level
     maze_level = set_up_level(screen=screen, level=1)
-    
+
     # ALGORITHM_TO_GHOST mapping for displaying different ghost types
     ghost_types = ["blinky", "inky", "pinky", "clyde", "blinky"]
-    
+
     for test_case in range(1, 6):
         pg.display.set_caption(f"Test Case {test_case} Positions")
-        
+
         # Lấy vị trí spawn cho test case hiện tại
         pacman_spawn, ghost_spawn = select_spawn_pair(maze_level, test_case)
-        
+
         # Tạo đối tượng Pac-Man và Ghost
-        pacman = Player(initial_position=pacman_spawn.rect.topleft, speed=0)  # speed=0 để không di chuyển
+        pacman = Player(initial_position=pacman_spawn.rect.topleft, speed=0)
+        # speed=0 để không di chuyển
         pacman_group = pg.sprite.GroupSingle(pacman)
-        
+
         # Sử dụng ghost_types[test_case-1] để hiển thị các loại ghost khác nhau trong mỗi test case
-        ghost = Ghost(
+        Ghost(
             initial_position=ghost_spawn,
             speed=0,  # speed=0 để không di chuyển
             ghost_type=ghost_types[test_case-1],
             ghost_group=maze_level.ghosts,
             path_dispatcher=None,  # Không cần path_dispatcher vì không di chuyển
         )
-        
+
         # Vị trí theo tile và pixel
-        pacman_pos_tile = (pacman_spawn.rect.centerx // TILE_SIZE, 
+        pacman_pos_tile = (pacman_spawn.rect.centerx // TILE_SIZE,
                           pacman_spawn.rect.centery // TILE_SIZE)
-        ghost_pos_tile = (ghost_spawn.rect.centerx // TILE_SIZE, 
+        ghost_pos_tile = (ghost_spawn.rect.centerx // TILE_SIZE,
                          ghost_spawn.rect.centery // TILE_SIZE)
-        
+
         pacman_pos_pixel = pacman_spawn.rect.topleft
         ghost_pos_pixel = ghost_spawn.rect.topleft
-        
+
         # Tính khoảng cách Euclidean
         distance = euclidean_distance(pacman_spawn, ghost_spawn)
-        
+
         # Thời điểm bắt đầu hiển thị test case
         start_time = time.time()
         running = True
-        
+
         # Hiển thị test case trong 5 giây
         while running and (time.time() - start_time) < 5:
             for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    pg.quit()
+                if event.type == pg.QUIT: # pylint: disable=no-member
+                    pg.quit() # pylint: disable=no-member
                     sys.exit(0)
-                elif event.type == pg.KEYDOWN:
-                    if event.key == pg.K_ESCAPE:
-                        pg.quit()
+                elif event.type == pg.KEYDOWN: # pylint: disable=no-member
+                    if event.key == pg.K_ESCAPE:  # pylint: disable=no-member
+                        pg.quit() # pylint: disable=no-member
                         sys.exit(0)
-                    elif event.key == pg.K_SPACE:
+                    elif event.key == pg.K_SPACE: # pylint: disable=no-member
                         # Bỏ qua test case hiện tại nếu nhấn space
                         running = False
-            
+
             # Xóa màn hình
             screen.fill((0, 0, 0))
-            
+
             # Vẽ mê cung
             render_maze_level(maze_level, screen, 0)
-            
+
             # Vẽ Pac-Man và Ghost
             pacman_group.draw(screen)
             maze_level.ghosts.draw(screen)
-            
+
             # Hiển thị thông tin của test case
             title_text = title_font.render(f"Test Case {test_case}", True, (255, 255, 255))
             screen.blit(title_text, (20, 20))
-            
+
             info_texts = [
                 f"Selection: {get_test_case_description(test_case)}",
                 f"Pac-Man: Tile ({pacman_pos_tile[0]}, {pacman_pos_tile[1]}), Pixel {pacman_pos_pixel}",
@@ -197,22 +205,21 @@ def display_test_positions():
                 f"Euclidean distance: {distance:.2f} pixels",
                 f"Time left: {5 - (time.time() - start_time):.1f}s"
             ]
-            
+
             y_offset = 60
             for text in info_texts:
                 text_surface = font.render(text, True, (255, 255, 255))
                 screen.blit(text_surface, (20, y_offset))
                 y_offset += 30
-            
+
             pg.display.flip()
             clock.tick(60)
-        
+
         # Xóa ghost trước khi chuyển qua test case tiếp theo
         maze_level.ghosts.empty()
-    
     # In thông báo kết thúc
     print("Đã hiển thị xong tất cả các test case")
-    pg.quit()
-    
+    pg.quit()   # pylint: disable=no-member
+
 if __name__ == "__main__":
     display_test_positions()

@@ -44,24 +44,24 @@ def main():
         3: (ucs_pathfinder, "UCS"),
         4: (a_star_pathfinder, "A*")
     }
-    
+
     while True:
         menu()
         choice = get_input("Nhập lựa chọn của bạn (0-5): ", range(6))
-        
+
         if choice == 0:
             print("Kết thúc chương trình")
             sys.exit(0)
-        
+
         # Select algorithm
         pathfinder, algorithm_name = algorithms[choice]
-        
+
         # Ask for simulation duration
         print(f"\nBạn chọn thuật toán: {algorithm_name}")
-        
+
         print(f"\nBắt đầu chạy các test case với thuật toán {algorithm_name}...")
         time.sleep(1.5)  # Give user time to read
-        
+
         # Run tests with selected algorithm
         run_algorithm_tests(
             pathfinder=pathfinder,
