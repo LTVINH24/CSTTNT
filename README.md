@@ -9,7 +9,16 @@
 
 ### Steps to install and run the code
 
-1. **Open folder 22120363_22120378_22120387_22120434_22120443**
+1. **Open folder 22120363_22120378_22120387_22120434_22120443** \
+  (*from the `22120363_22120378_22120387_22120434_22120443.zip`*)
+
+- Or you can run the following command to pull directly from our repository:
+  ```bash
+  git clone https://github.com/LTVINH24/CSTTNT.git
+  ```
+  ```bash
+  cd CSTTNT
+  ```
 
 ```bash
 cd Source
@@ -27,16 +36,14 @@ python -m venv .venv
 3. **Activate the virtual environment:**
 
 - On Windows:
-
-```bash
-.venv\Scripts\activate
-```
+  ```bash
+  .venv\Scripts\activate
+  ```
 
 - On macOS/Linux:
-
-```bash
-source .venv/bin/activate
-```
+  ```bash
+  source .venv/bin/activate
+  ```
 
 4. **Install the required packages** _(in the `.venv` terminal)_ :
 
@@ -45,43 +52,42 @@ pip install -r requirements.txt
 ```
 
 5. **To run the game, use these following commands:**
-_Level 1: Blue Ghost (Inky) – Breadth-First Search (BFS)_
 
-```bash
-python -m src.levels.breadth_first_search
-```
+- _Level 1: Blue Ghost (Inky) – Breadth-First Search (BFS)_
+  ```bash
+  python -m src.levels.breadth_first_search
+  ```
 
-_Level 2: Pink Ghost (Pinky) – Depth-First Search (DFS)_
+- _Level 2: Pink Ghost (Pinky) – Depth-First Search (DFS)_
+  ```bash
+  python -m src.levels.depth_first_search
+  ```
 
-```bash
-python -m src.levels.depth_first_search
-```
+- _Level 3: Orange Ghost (Clyde) – Uniform-Cost Search (UCS)_
+  ```bash
+  python -m src.levels.uniform_cost_search
+  ```
 
-_Level 3: Orange Ghost (Clyde) – Uniform-Cost Search (UCS)_
+- _Level 4: Red Ghost (Blinky) – A* Search (A*)_
+  ```bash
+  python -m src.levels.a_star_search
+  ```
 
-```bash
-python -m src.levels.uniform_cost_search
-```
+- _Level 5: Parallel Execution_
+  ```bash
+  python -m src.levels.ghost_official_assembly
+  ```
+  >  **Note:** While running the module, you may encounter the situation where 3 or more ghosts bundled together
+  unable to move (as some algorithms like DFS and BFS aren't smart enough to break the conflict).
+  > - In this case, please kindly wait until they can resolve themselves.
+  
+  - In this level, you can click on any empty space to immediately move the Pacman there.
 
-_Level 4: Red Ghost (Blinky) – A* Search (A*)_
-
-```bash
-python -m src.levels.a_star_search
-```
-
-_Level 5: Parallel Execution_
-
-```bash
-python -m src.levels.ghost_official_assembly
-```
->  **Note:** Since the ghosts BFS, UCS, and A* reach Pacman faster, there are some cases where DFS cannot reach Pacman.  
-> As a result, DFS ends up looping around trying to find a way. This is not a bug.
-
-_Level 6: User-Controlled Pac-Man_
-
-```bash
-python -m src.levels.pacman_move
-```
+- _Level 6: User-Controlled Pac-Man_
+  ```bash
+  python -m src.levels.pacman_move
+  ```
+  - In this level, you use the arrow keys to move the pacman in the corresponding direction.
 
 7. **For evaluating and comparing the performance of those algorithms, you can run:** `python -m src.tests.test_main`. 
 
@@ -93,7 +99,7 @@ python -m src.levels.pacman_move
     * 3. Second smallest Euclidean distance.
     * 4. Minimum X-axis difference between spawn points.
     * 5. Pacman at highest position (min Y), Ghost at lowest position (max Y).
-  - You will recieve file *.csv in folder `results\` after run one algorithms.
+  - You will receive file *.csv in folder `results\` after run one algorithms.
 
 - For visualization:
 
@@ -108,10 +114,6 @@ pip freeze > requirements.txt
 ## References
 
 - Assets link: https://pixelaholic.itch.io/pac-man-game-art
-
-## Notes:
-
-- **_Consider install `Pylint` to enforce good coding practices._**
 
 ## Report and Youtube link:
 
