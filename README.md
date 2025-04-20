@@ -11,6 +11,9 @@
 
 1. **Open folder 22120363_22120378_22120387_22120434_22120443**
 
+```bash
+cd Source
+```
 2. **Create a virtual environment:**
 
 ```bash
