@@ -1,21 +1,29 @@
 """
-This module serves as a template for setting up and running a level in a Pacman-like game.
+This module implements the "Pink Ghost" level with the ghost Pinky
+using the Depth-First Search (DFS) algorithm.
 
-It provides the necessary setup for the maze, player (Pacman), ghosts, and pathfinding logic. 
-The module is designed to be used as a reference for creating new levels.
+Pinky (the pink ghost) is programmed to chase Pac-Man using the DFS algorithm,
+providing deterministic behavior
+based on exploring paths as deeply as possible before backtracking.
 
 Constants:
+    MIN_GHOST_SPAWN_DISTANCE (int):
+        The minimum distance the ghost(s) can be spawned from Pac-Man's position.
+    TILE_SIZE (int): The size of a tile in the map.
     NUMBER_OF_GHOSTS (int): The number of ghosts to spawn in the level.
     INITIAL_SPEED_MULTIPLIER (int): The initial speed multiplier for the ghosts.
     BASE_SPEED (int): The base speed of ghosts in pixels per second.
-    ARBITARY_SCREEN_SIZES (tuple[int, int]): The screen size for the maze layout.
+    SCREEN_SIZES (tuple[int, int]): The screen size for the maze layout.
     LEVEL (int): The level number, used to load the corresponding maze layout file.
 
 Notes:
-- The `path_dispatcher` is initialized with a placeholder pathfinding algorithm 
-  (`random_walk_path_finder`). Replace it with your own pathfinding algorithm for better gameplay.
-- The maze layout is loaded using the `set_up_level` function, which expects a corresponding 
-  level file (e.g., "level_1.txt") in the "assets/levels" directory.    
+- This module uses the Depth-First Search (DFS) algorithm to find paths,
+  enabling Pinky to chase Pac-Man.
+- The maze layout is loaded using the `set_up_level` function,
+  which expects a corresponding level file
+  (e.g., "level_1.txt") in the "assets/levels" directory.
+- The `path_dispatcher` is initialized with the DFS pathfinding algorithm
+  (`depth_first_search_path_finder`).
 """
 import sys
 import random
@@ -30,18 +38,20 @@ from src.maze import (
     MazeCoord,
     MazeLevel, set_up_level, render_maze_level
 )
-from src.pathfinding import PathDispatcher, depth_first_search_path_finder
-from src.constant import TILE_SIZE
+from src.pathfinding import PathDispatcher, depth_first_search_path_finder, Pathfinder
+from src.constant import TILE_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH
 from src.ghost import Ghost
 from src.player import Player
 from src.ui.game_over import show_game_over_screen
+
 MIN_GHOST_SPAWN_DISTANCE = 5 * TILE_SIZE
 NUMBER_OF_GHOSTS = 1
 INITIAL_SPEED_MULTIPLIER = 4  # initial speed multiplier for the ghosts
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # base speed in pixels per second
 
-ARBITARY_SCREEN_SIZES = (800, 600)  # arbitrary screen sizes for the maze layout
-LEVEL = 1 # create your own "level_.txt" file in "assets/levels" directory
+SCREEN_SIZES = (SCREEN_WIDTH, SCREEN_HEIGHT)  # screen size for the maze layout
+LEVEL = 1
+
 def check_collision(ghost, pacman):
     """
     Kiểm tra va chạm giữa ma và Pacman.
@@ -63,7 +73,7 @@ def run_level():
     # pylint: disable=no-member
     pg.init()
     # pylint: enable=no-member
-    screen_sizes = ARBITARY_SCREEN_SIZES
+    screen_sizes = SCREEN_SIZES
     screen = pg.display.set_mode(screen_sizes)
     pg.display.set_caption(f"Level {LEVEL}")
     clock = pg.time.Clock()
@@ -85,15 +95,15 @@ def run_level():
         )
         pacman_group = pg.sprite.GroupSingle(pacman)
         path_dispatcher = PathDispatcher(
-        maze_layout=maze_level.maze_layout,
-        player=pacman,
-        pathfinder=depth_first_search_path_finder, # replace with your own pathfinding algorithm
+            maze_layout=maze_level.maze_layout,
+            player=pacman,
         )
         pinky = set_up_pinky(   #thay bằng tên ghost trong level
-        ghost_group=maze_level.ghosts,
-        spawn_points=maze_level.spawn_points,
-        path_dispatcher=path_dispatcher,
-        pacman_spawn=pacman_spawn
+            ghost_group=maze_level.ghosts,
+            spawn_points=maze_level.spawn_points,
+            path_finder=depth_first_search_path_finder,
+            path_dispatcher=path_dispatcher,
+            pacman_spawn=pacman_spawn
         )
         return maze_level
 
@@ -139,11 +149,16 @@ def run_level():
 def set_up_pinky(
         ghost_group: pg.sprite.Group,
         spawn_points: list[MazeCoord],
+        path_finder: Pathfinder,
         path_dispatcher: PathDispatcher = None,
         pacman_spawn: MazeCoord = None,
     ) -> None:
+    """
+    Create the pink ghost (Pinky) with a random spawn position
+    ensuring it does not overlap with Pacman.
+    """
     valid_spawn_points = []
-    
+
     if pacman_spawn:
         pacman_center = pacman_spawn.rect.center
         # Lọc các điểm ở xa Pacman
@@ -152,19 +167,19 @@ def set_up_pinky(
                 distance = calculate_distance(point.rect.center, pacman_center)
                 if distance >= MIN_GHOST_SPAWN_DISTANCE:
                     valid_spawn_points.append(point)
-    
+
     # Nếu không có điểm hợp lệ, chọn từ tất cả các điểm (trừ điểm của Pacman)
     if not valid_spawn_points:
         valid_spawn_points = [p for p in spawn_points if p != pacman_spawn]
         print("Cảnh báo: Không tìm thấy điểm spawn đủ xa cho Clyde!")
-    
+
     # Nếu vẫn không có điểm nào, dùng tất cả các điểm
     if not valid_spawn_points:
         valid_spawn_points = spawn_points
         print("Cảnh báo: Buộc phải dùng tất cả các điểm spawn!")
     # Chọn điểm xuất hiện ngẫu nhiên cho Pinky
     spawn_point = random.choice(valid_spawn_points)
-    
+
     # Tạo ma đỏ (Pinky) - luôn sử dụng ghost_type="pinky" cho ma đỏ
     pinky = Ghost(
         initial_position=spawn_point,
@@ -172,11 +187,12 @@ def set_up_pinky(
         ghost_type="pinky",  # Chỉ định loại ma là Pinky (ma hồng)
         ghost_group=ghost_group,
         path_dispatcher=path_dispatcher,
+        path_finder=path_finder,
     )
-    
+
     # In thông tin về ma đỏ
     print(f"pinky (Red Ghost) spawned at position: {spawn_point.rect.center}")
-    
+
     if pacman_spawn:
         distance = calculate_distance(spawn_point.rect.center, pacman_spawn.rect.center)
         print(f"Distance between Pacman and Blinky: {distance/TILE_SIZE:.2f} tiles")

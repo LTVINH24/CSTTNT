@@ -31,7 +31,7 @@ from src.maze import (
     MazeCoord,
     MazeLevel, set_up_level, render_maze_level
 )
-from src.pathfinding import PathDispatcher, random_walk_path_finder
+from src.pathfinding import PathDispatcher, random_walk_path_finder, Pathfinder
 from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
@@ -73,12 +73,13 @@ def run_level():
     path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=random_walk_path_finder, # TODO: replace with your own pathfinding algorithm
+        pathfinder=random_walk_path_finder,
     )
 
     set_up_ghosts(
         ghost_group=maze_level.ghosts,
         spawn_points=maze_level.spawn_points,
+        path_finder=random_walk_path_finder, # TODO: replace with your own pathfinding algorithm
         path_dispatcher=path_dispatcher,
     )
 
@@ -109,6 +110,7 @@ def run_level():
 def set_up_ghosts(
         ghost_group: pg.sprite.Group,
         spawn_points: list[MazeCoord],
+        path_finder: Pathfinder,
         path_dispatcher: PathDispatcher = None,
     ) -> None:
     """
@@ -131,6 +133,7 @@ def set_up_ghosts(
             ghost_type=ghost_type,
             ghost_group=ghost_group,
             path_dispatcher=path_dispatcher,
+            path_finder=path_finder,
         )
 
 def random_picker[T](items: Iterable[T], seed=None) -> Generator[T, None, None]:
