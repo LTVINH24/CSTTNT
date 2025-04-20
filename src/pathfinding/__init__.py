@@ -10,7 +10,7 @@ from .pathfinder import (
     PathListener, PathDispatcher
 )
 
-from .A_star_pathfinder import a_star_pathfinder
+from .a_star_pathfinder import a_star_pathfinder
 from .uniform_cost_search_pathfinder import ucs_pathfinder
 from .random_walk_pathfinder import random_walk_path_finder
 from .depth_first_search_pathfinder import depth_first_search_path_finder
