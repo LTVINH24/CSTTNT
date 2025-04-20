@@ -37,8 +37,24 @@ def find_min_x_pair(spawn_points):
                 best_pair = (i, j)
     return best_pair
 
+def find_max_x_pair(spawn_points):
+    """Tìm cặp spawn points có chênh lệch trên trục X lớn nhất trong test case 2."""
+    n = len(spawn_points)
+    best_pair = None
+    max_dx = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            dx = abs(spawn_points[i].rect.centerx - spawn_points[j].rect.centerx)
+            if dx > max_dx:
+                max_dx = dx
+                best_pair = (i, j)
+    return best_pair
+
 def find_y_pair(spawn_points):
-    """Tìm spawn với Y nhỏ nhất cho Pac-Man (cao nhất màn hình) và Y lớn nhất cho Ghost trong test case 5."""
+    """
+    Tìm spawn với Y nhỏ nhất cho Pac-Man (cao nhất màn hình) 
+    và Y lớn nhất cho Ghost trong test case 5.
+    """
     pacman_spawn = min(spawn_points, key=lambda sp: sp.rect.centery)
     ghost_spawn = max(spawn_points, key=lambda sp: sp.rect.centery)
     return pacman_spawn, ghost_spawn
@@ -47,7 +63,7 @@ def select_spawn_pair(maze_level, test_case: int):
     """
     Chọn cặp spawn cho Pac-Man và Ghost dựa trên các test case:
         1. Khoảng cách nhỏ nhất (Euclidean).
-        2. Khoảng cách lớn nhất (Euclidean).
+        2. Chênh lệch X lớn nhất: hai spawn xa nhau về phương ngang nhất.
         3. Khoảng cách nhỏ thứ hai (Euclidean).
         4. Chênh lệch X nhỏ nhất: hai spawn gần nhau về phương ngang nhất.
         5. Dựa trên toạ độ Y: Pac-Man ở spawn có Y nhỏ nhất, Ghost ở spawn có Y lớn nhất.
@@ -55,6 +71,11 @@ def select_spawn_pair(maze_level, test_case: int):
     spawn_points = maze_level.spawn_points
     if len(spawn_points) < 2:
         raise ValueError("Cần ít nhất 2 spawn point để chọn vị trí cho Pac-Man và Ghost.")
+
+    # Test case 2: chênh lệch X lớn nhất
+    if test_case == 2:
+        best_pair = find_max_x_pair(spawn_points)
+        return spawn_points[best_pair[0]], spawn_points[best_pair[1]]
 
     # Test case 4: chênh lệch X nhỏ nhất
     if test_case == 4:
@@ -65,7 +86,7 @@ def select_spawn_pair(maze_level, test_case: int):
     if test_case == 5:
         return find_y_pair(spawn_points)
 
-    # Các test case dựa trên khoảng cách Euclidean (hợp nhất hai hàm)
+    # Các test case dựa trên khoảng cách Euclidean (còn lại)
     n = len(spawn_points)
     pairs = []
     for i in range(n):
@@ -73,21 +94,18 @@ def select_spawn_pair(maze_level, test_case: int):
             d = euclidean_distance(spawn_points[i], spawn_points[j])
             pairs.append(((i, j), d))
     pairs_sorted = sorted(pairs, key=lambda x: x[1])
-    
     idx_pair = None
-    # Chọn cặp spawn dựa trên test case
+    # Chọn cặp spawn dựa trên test case còn lại
     if len(pairs_sorted) == 1:
         idx_pair = pairs_sorted[0][0]
     elif test_case == 1:  # Khoảng cách nhỏ nhất tính bằng thuật toán Euclidean
         idx_pair = pairs_sorted[0][0]
-    elif test_case == 2:  # Khoảng cách lớn nhất tính bằng thuật toán Euclidean
-        idx_pair = pairs_sorted[-1][0]
     elif test_case == 3:  # Khoảng cách nhỏ thứ hai
         idx_pair = pairs_sorted[1][0] if len(pairs_sorted) > 1 else pairs_sorted[0][0]
 
     return spawn_points[idx_pair[0]], spawn_points[idx_pair[1]]
 
-# Bảng ánh xạ thuật toán với loại ma tương ứng
+# Bảng thuật toán với loại ma tương ứng
 ALGORITHM_TO_GHOST = {
     "A*": "blinky",    
     "BFS": "inky",     
@@ -167,7 +185,7 @@ def run_visual_test(
         screen.fill((0, 0, 0))
         render_maze_level(maze_level, screen, dt)
         pacman_group.draw(screen)
-        ghost.update(dt)  # Trong ghost.update, path_dispatcher sẽ gọi thuật toán và cập nhật last_stats
+        ghost.update(dt)
         maze_level.ghosts.draw(screen)
         pg.display.flip()
 
@@ -209,12 +227,12 @@ def print_statistics_table(stats_list):
     """
     In bảng thống kê các thông số của 5 lần chạy với thuật toán ra màn hình console.
     """
-    headers = ["Test Case", "Algorithm", "Ghost Type", "Collision", "Duration (s)", "Search Time (s)",
-            "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"]
+    headers = ["Test Case", "Algorithm", "Ghost Type",
+               "Collision", "Duration (s)", "Search Time (s)",
+                "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"]
     header_format = "{:<10} {:<12} {:<12} {:<10} {:<15} {:<18} {:<20} {:<15} {:<12} {:<12}"
     print("\n" + header_format.format(*headers))
     print("-" * 140)
-    
     for stats in stats_list:
         # Định dạng các giá trị cho bảng
         formatted_values = [
@@ -240,33 +258,33 @@ def write_statistics_to_file(stats_list, algorithm_name):
         # Tạo tên file hợp lệ bằng cách loại bỏ các ký tự đặc biệt
         safe_name = algorithm_name.lower().replace(' ', '_').replace('*', 'star')
         filename = f"test_{safe_name}.csv"
-        
         # Sử dụng đường dẫn tuyệt đối cho file đầu ra
         output_dir = os.path.join(os.getcwd(), "results")
-        
+
         # Tạo thư mục results nếu chưa tồn tại
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-            
+
         # Đường dẫn đầy đủ đến file
         filepath = os.path.join(output_dir, filename)
-        
+
         # Kiểm tra xem file đã tồn tại chưa
         file_exists = os.path.isfile(filepath)
-        
-        headers = ["Test Case", "Algorithm", "Ghost Type", "Collision", "Duration (s)", "Search Time (s)", 
-                  "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"]
-        
+
+        headers = ["Test Case", "Algorithm", "Ghost Type",
+                   "Collision", "Duration (s)", "Search Time (s)",
+                    "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"]
+
         print(f"\nĐang ghi kết quả vào file: {filepath}")
-        
+
         # Mở file ở chế độ append - thêm vào cuối file
         with open(filepath, 'a', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
-            
+
             # Chỉ viết headers nếu file chưa tồn tại
             if not file_exists:
                 writer.writerow(headers)
-            
+
             # Ghi dữ liệu của các lần chạy
             for stats in stats_list:
                 row = [
@@ -282,7 +300,7 @@ def write_statistics_to_file(stats_list, algorithm_name):
                     stats["Path Weight"]
                 ]
                 writer.writerow(row)
-        
+
         print(f"Đã lưu kết quả thành công vào file: {filepath}")
     except Exception as e:
         print(f"Lỗi khi lưu file: {str(e)}")
@@ -304,7 +322,7 @@ def run_algorithm_tests(pathfinder, algorithm_name, simulation_duration=60):
     for test in range(1, 6):
         print(f"\nĐang chạy Test Case {test} với thuật toán {algorithm_name}")
         stats = run_visual_test(
-            test_case=test, 
+            test_case=test,
             pathfinder=pathfinder,
             algorithm_name=algorithm_name,
             simulation_duration=simulation_duration
@@ -312,11 +330,9 @@ def run_algorithm_tests(pathfinder, algorithm_name, simulation_duration=60):
         all_stats.append(stats)
         print(f"Test Case {test} hoàn tất. Chuyển sang test case tiếp theo trong 2 giây...")
         time.sleep(2)
-    
     print(f"\nBảng thống kê các thông số của 5 lần chạy với thuật toán {algorithm_name}:")
     print_statistics_table(all_stats)
-    
+
     # Viết thống kê vào file csv
     write_statistics_to_file(all_stats, algorithm_name)
-    
     return all_stats
