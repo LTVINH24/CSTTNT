@@ -49,7 +49,7 @@ from src.pathfinding import (
 from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
-
+from src.ui.game_over import show_game_over_screen
 NUMBER_OF_GHOSTS = 1
 INITIAL_SPEED_MULTIPLIER = 4  # initial speed multiplier for the ghosts
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # base speed in pixels per second
@@ -62,7 +62,19 @@ PATH_FINDER_BY_GHOST = {
     "inky": breadth_first_search_path_finder,
     "pinky": depth_first_search_path_finder,
 }
+def check_collision(ghost, pacman):
+    """
+    Kiểm tra va chạm giữa ma và Pacman.
+    Trả về True nếu có va chạm, False nếu không.
+    """
+    # Sử dụng hàm va chạm có sẵn của Pygame
+    return pg.sprite.collide_rect(ghost, pacman)
 
+def calculate_distance(pos1, pos2):
+    """
+    Tính khoảng cách Euclidean giữa hai điểm của Pacman và Blinky để đảm bảo không spawn trùng nhau.
+    """
+    return ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
 def run_level(enable_movement_by_mouse: bool = False) -> None:
     """
     Run the maze level with ghosts.
@@ -75,49 +87,65 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
     screen = pg.display.set_mode(screen_sizes)
     pg.display.set_caption("Level 6")
     clock = pg.time.Clock()
-    pacman_direction = None
-    pacman_target_pos = None
-    # maze level setup
-    maze_level: MazeLevel = set_up_level(
-        screen=screen,
-        level=LEVEL,
-    )
+    pacman = None
+    pacman_group = None
+    path_dispatcher = None
+    maze_level = None
+    
+    def initialize_level():
+        nonlocal pacman,pacman_group,path_dispatcher,maze_level, pacman_direction,pacman_target_pos
 
-    # pacman setup with random spawn point
-    pacman_position: tuple[int, int]
-    if maze_level.player_spawn_points is None or len(maze_level.player_spawn_points) == 0:
-        pacman_position = random.choice(maze_level.spawn_points).rect.topleft
-    else:
-        pacman_position = random.choice(maze_level.player_spawn_points).rect.topleft
-    pacman = Player(
-        initial_position=pacman_position,
-        speed=PLAYER_SPEED,
-    )
-    pacman_group = pg.sprite.GroupSingle(pacman)
+        pacman_direction = None
+        pacman_target_pos = None
+        # maze level setup
+        maze_level = set_up_level(
+            screen=screen,
+            level=LEVEL,
+        )
+        # pacman setup with random spawn point
+        pacman_position: tuple[int, int]
+        if maze_level.player_spawn_points is None or len(maze_level.player_spawn_points) == 0:
+            pacman_position = random.choice(maze_level.spawn_points).rect.topleft
+        else:
+            pacman_position = random.choice(maze_level.player_spawn_points).rect.topleft
+        pacman = Player(
+            initial_position=pacman_position,
+            speed=PLAYER_SPEED,
+        )
+        pacman_group = pg.sprite.GroupSingle(pacman)
 
-    path_dispatcher = PathDispatcher(
-        maze_layout=maze_level.maze_layout,
-        player=pacman,
-    )
+        path_dispatcher = PathDispatcher(
+            maze_layout=maze_level.maze_layout,
+            player=pacman,
+        )
+        set_up_ghosts(
+            ghost_group=maze_level.ghosts,
+            spawn_points=maze_level.spawn_points,
+            path_dispatcher=path_dispatcher,
+        )
+        return maze_level
 
-    set_up_ghosts(
-        ghost_group=maze_level.ghosts,
-        spawn_points=maze_level.spawn_points,
-        path_dispatcher=path_dispatcher,
-    )
+    
 
+    maze_level = initialize_level()
     while True:
         for event in pg.event.get():
             if event.type == QUIT:
                 sys.exit()
-            if event.type == MOUSEBUTTONDOWN and event.button == 1 and enable_movement_by_mouse:
-                move_pacman_by_mouse(
-                    pacman=pacman,
-                    mouse_pos=pg.mouse.get_pos(),
-                    maze_weights=maze_level.maze_layout.maze_weight,
-                )
-
         delta_time = clock.tick(60) # in ms
+        for ghost in maze_level.ghosts:
+            if check_collision(ghost,pacman):
+                print("Game Over! Ghost đã bắt được Pacman!")
+                pg.time.wait(5)
+                screen.fill((0, 0, 0))
+                render_maze_level(maze_level=maze_level, screen=screen, dt=0)
+                pacman_group.draw(screen)
+                choice = show_game_over_screen(screen)
+                if choice =="replay":
+                    maze_level = initialize_level()
+                    continue
+                elif choice == "exit":
+                    sys.exit()
         keys = pg.key.get_pressed()
         pacman_direction, pacman_target_pos = handle_pacman_movement(
             pacman=pacman,
