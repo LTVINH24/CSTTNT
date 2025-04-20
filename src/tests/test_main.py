@@ -47,7 +47,7 @@ def main():
 
     while True:
         menu()
-        choice = get_input("Nhập lựa chọn của bạn (0-5): ", range(6))
+        choice = get_input("Nhập lựa chọn của bạn (0-4): ", range(6))
 
         if choice == 0:
             print("Kết thúc chương trình")

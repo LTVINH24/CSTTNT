@@ -63,7 +63,7 @@ python -m src.levels.uniform_cost_search
 _Level 4: Red Ghost (Blinky) – A* Search (A*)_
 
 ```bash
-python -m src.levels.A_star_search
+python -m src.levels.a_star_search
 ```
 
 _Level 5: Parallel Execution_
