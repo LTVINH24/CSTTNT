@@ -13,7 +13,11 @@ from src.maze import set_up_level, render_maze_level
 from src.player import Player
 from src.ghost import Ghost
 from src.constant import TILE_SIZE
-from src.pathfinding import PathDispatcher
+from src.pathfinding import (
+  PathDispatcher,
+  a_star_pathfinder, depth_first_search_path_finder,
+  breadth_first_search_path_finder, ucs_pathfinder
+)
 
 def euclidean_distance(sp1, sp2):
     """
@@ -95,6 +99,7 @@ def select_spawn_pair(maze_level, test_case: int):
             pairs.append(((i, j), d))
     pairs_sorted = sorted(pairs, key=lambda x: x[1])
     idx_pair = None
+
     # Chọn cặp spawn dựa trên test case còn lại
     if len(pairs_sorted) == 1:
         idx_pair = pairs_sorted[0][0]
@@ -107,10 +112,17 @@ def select_spawn_pair(maze_level, test_case: int):
 
 # Bảng thuật toán với loại ma tương ứng
 ALGORITHM_TO_GHOST = {
-    "A*": "blinky",    
-    "BFS": "inky",     
+    "A*": "blinky",
+    "BFS": "inky",
     "DFS": "pinky",
     "UCS": "clyde"
+}
+
+ALGORITHM_BY_GHOST = {
+    "blinky": a_star_pathfinder,
+    "inky": breadth_first_search_path_finder,
+    "pinky": depth_first_search_path_finder,
+    "clyde": ucs_pathfinder
 }
 
 # Thực hiện chạy test case trực quan với Ghost đuổi Pacman khi Pacman đứng yên.
@@ -128,7 +140,7 @@ def run_visual_test(
 
     Khi ghost chạm vào Pac-Man, test case dừng lại ngay.
     Hàm trả về dictionary thống kê gồm:
-        "Test Case", "Algorithm", "Ghost Type", "Collision", "Duration (s)", "Search Time (s)", 
+        "Test Case", "Algorithm", "Ghost Type", "Collision", "Duration (s)", "Search Time (s)",
         "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"
     """
     # pylint: disable=no-member
@@ -168,6 +180,7 @@ def run_visual_test(
         ghost_type=ghost_type,  # Sử dụng ghost_type tương ứng với thuật toán
         ghost_group=maze_level.ghosts,
         path_dispatcher=path_dispatcher,
+        path_finder=ALGORITHM_BY_GHOST[ghost_type],  # Chọn thuật toán dựa vào ghost_type
     )
 
     start_ticks = pg.time.get_ticks()
@@ -184,9 +197,12 @@ def run_visual_test(
 
         screen.fill((0, 0, 0))
         render_maze_level(maze_level, screen, dt)
+
+        # Update maze and ghosts rendering
+        render_maze_level(maze_level, screen, dt)
+
+        # Draw pacman after drawing the maze
         pacman_group.draw(screen)
-        ghost.update(dt)
-        maze_level.ghosts.draw(screen)
         pg.display.flip()
 
         if pg.sprite.collide_rect(ghost, pacman):
@@ -227,12 +243,14 @@ def print_statistics_table(stats_list):
     """
     In bảng thống kê các thông số của 5 lần chạy với thuật toán ra màn hình console.
     """
-    headers = ["Test Case", "Algorithm", "Ghost Type",
-               "Collision", "Duration (s)", "Search Time (s)",
-                "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"]
+    headers = [
+        "Test Case", "Algorithm", "Ghost Type", "Collision", "Duration (s)", "Search Time (s)",
+        "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"
+        ]
     header_format = "{:<10} {:<12} {:<12} {:<10} {:<15} {:<18} {:<20} {:<15} {:<12} {:<12}"
     print("\n" + header_format.format(*headers))
     print("-" * 140)
+
     for stats in stats_list:
         # Định dạng các giá trị cho bảng
         formatted_values = [
@@ -271,9 +289,10 @@ def write_statistics_to_file(stats_list, algorithm_name):
         # Kiểm tra xem file đã tồn tại chưa
         file_exists = os.path.isfile(filepath)
 
-        headers = ["Test Case", "Algorithm", "Ghost Type",
-                   "Collision", "Duration (s)", "Search Time (s)",
-                    "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"]
+        headers = [
+            "Test Case", "Algorithm", "Ghost Type", "Collision", "Duration (s)", "Search Time (s)",
+            "Memory Peak (bytes)", "Expanded Nodes", "Nodes are passed", "Path Weight"
+            ]
 
         print(f"\nĐang ghi kết quả vào file: {filepath}")
 
@@ -309,12 +328,12 @@ def write_statistics_to_file(stats_list, algorithm_name):
 def run_algorithm_tests(pathfinder, algorithm_name, simulation_duration=60):
     """
     Run all test cases for a specific pathfinding algorithm.
-    
+
     Args:
         pathfinder: The pathfinding algorithm function to use
         algorithm_name: Name of the algorithm for display and reporting
         simulation_duration: Maximum duration for each test in seconds
-        
+
     Returns:
         List of dictionaries containing test statistics
     """
