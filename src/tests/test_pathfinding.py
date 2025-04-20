@@ -43,11 +43,24 @@ def find_y_pair(spawn_points):
     ghost_spawn = max(spawn_points, key=lambda sp: sp.rect.centery)
     return pacman_spawn, ghost_spawn
 
+def find_max_x_pair(spawn_points):
+    """Tìm cặp spawn points có chênh lệch trên trục X lớn nhất trong test case 2."""
+    n = len(spawn_points)
+    best_pair = None
+    max_dx = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            dx = abs(spawn_points[i].rect.centerx - spawn_points[j].rect.centerx)
+            if dx > max_dx:
+                max_dx = dx
+                best_pair = (i, j)
+    return best_pair
+
 def select_spawn_pair(maze_level, test_case: int):
     """
     Chọn cặp spawn cho Pac-Man và Ghost dựa trên các test case:
         1. Khoảng cách nhỏ nhất (Euclidean).
-        2. Khoảng cách lớn nhất (Euclidean).
+        2. Chênh lệch X lớn nhất: hai spawn xa nhau về phương ngang nhất.
         3. Khoảng cách nhỏ thứ hai (Euclidean).
         4. Chênh lệch X nhỏ nhất: hai spawn gần nhau về phương ngang nhất.
         5. Dựa trên toạ độ Y: Pac-Man ở spawn có Y nhỏ nhất, Ghost ở spawn có Y lớn nhất.
@@ -56,6 +69,11 @@ def select_spawn_pair(maze_level, test_case: int):
     if len(spawn_points) < 2:
         raise ValueError("Cần ít nhất 2 spawn point để chọn vị trí cho Pac-Man và Ghost.")
 
+    # Test case 2: chênh lệch X lớn nhất
+    if test_case == 2:
+        best_pair = find_max_x_pair(spawn_points)
+        return spawn_points[best_pair[0]], spawn_points[best_pair[1]]
+    
     # Test case 4: chênh lệch X nhỏ nhất
     if test_case == 4:
         best_pair = find_min_x_pair(spawn_points)
@@ -65,7 +83,7 @@ def select_spawn_pair(maze_level, test_case: int):
     if test_case == 5:
         return find_y_pair(spawn_points)
 
-    # Các test case dựa trên khoảng cách Euclidean (hợp nhất hai hàm)
+    # Các test case dựa trên khoảng cách Euclidean (còn lại)
     n = len(spawn_points)
     pairs = []
     for i in range(n):
@@ -75,13 +93,11 @@ def select_spawn_pair(maze_level, test_case: int):
     pairs_sorted = sorted(pairs, key=lambda x: x[1])
     
     idx_pair = None
-    # Chọn cặp spawn dựa trên test case
+    # Chọn cặp spawn dựa trên test case còn lại
     if len(pairs_sorted) == 1:
         idx_pair = pairs_sorted[0][0]
     elif test_case == 1:  # Khoảng cách nhỏ nhất tính bằng thuật toán Euclidean
         idx_pair = pairs_sorted[0][0]
-    elif test_case == 2:  # Khoảng cách lớn nhất tính bằng thuật toán Euclidean
-        idx_pair = pairs_sorted[-1][0]
     elif test_case == 3:  # Khoảng cách nhỏ thứ hai
         idx_pair = pairs_sorted[1][0] if len(pairs_sorted) > 1 else pairs_sorted[0][0]
 
