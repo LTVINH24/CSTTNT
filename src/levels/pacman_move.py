@@ -49,18 +49,21 @@ from src.constant import TILE_SIZE
 from src.ghost import Ghost, GHOST_TYPES
 from src.player import Player
 from src.ui.game_over import show_game_over_screen
+
 NUMBER_OF_GHOSTS = 1
 INITIAL_SPEED_MULTIPLIER = 4  # initial speed multiplier for the ghosts
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # base speed in pixels per second
 SCREEN_SIZE = (800, 600)
 LEVEL = 6
 PLAYER_SPEED = 8 * TILE_SIZE
+
 PATH_FINDER_BY_GHOST = {
     "blinky": a_star_pathfinder,
     "clyde": ucs_pathfinder,
     "inky": breadth_first_search_path_finder,
     "pinky": depth_first_search_path_finder,
 }
+
 def check_collision(ghost, pacman):
     """
     Kiểm tra va chạm giữa ma và Pacman.
@@ -74,6 +77,7 @@ def calculate_distance(pos1, pos2):
     Tính khoảng cách Euclidean giữa hai điểm của Pacman và Blinky để đảm bảo không spawn trùng nhau.
     """
     return ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
+
 def run_level() -> None:
     """
     Run the maze level with ghosts.

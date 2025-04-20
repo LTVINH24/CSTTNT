@@ -127,6 +127,15 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
             screen=screen,
             dt=delta_time,
         )
+
+        if pg.sprite.spritecollideany(pacman, maze_level.ghosts):
+            # If pacman collides with any ghost, move pacman to the furthest spawn point from ghosts
+            spawn_point = furthest_spawn_point_from_ghosts(
+                ghost_group=maze_level.ghosts,
+                spawn_points=maze_level.spawn_points,
+            )
+            pacman.rect.topleft = spawn_point.rect.topleft
+
         # Render the pacman
         pacman_group.draw(screen)
         # Update the path dispatcher
@@ -135,10 +144,34 @@ def run_level(enable_movement_by_mouse: bool = False) -> None:
         # Update the screen
         pg.display.flip()
 
+def furthest_spawn_point_from_ghosts(
+    ghost_group: pg.sprite.Group,
+    spawn_points: list[MazeCoord],
+    ) -> MazeCoord:
+    """
+    Move the pacman to the furthest spawn point.
+    """
+    def distance_from_ghosts(spawn_point: MazeCoord) -> float:
+        """
+        Calculate the distance from the spawn point to the ghosts.
+        """
+        ghosts: list[Ghost] = ghost_group.sprites()
+        return min(
+            np.linalg.norm(
+                np.array(spawn_point.rect.topleft) - np.array(ghost.rect.topleft)
+            )
+            for ghost in ghosts
+        )
+    return max(
+        spawn_points,
+        key=distance_from_ghosts,
+    )
+
 def move_pacman_by_mouse(
-        pacman: Player,
-        mouse_pos: tuple[int, int],
-        maze_weights: np.ndarray[np.uint16]) -> None:
+    pacman: Player,
+    mouse_pos: tuple[int, int],
+    maze_weights: np.ndarray[np.uint16]
+    ) -> None:
     """
     Move the pacman to the mouse position.
     """
@@ -148,9 +181,9 @@ def move_pacman_by_mouse(
         pacman.rect.topleft = maze_coord.rect.topleft
 
 def set_up_ghosts(
-        ghost_group: pg.sprite.Group,
-        spawn_points: list[MazeCoord],
-        path_dispatcher: PathDispatcher = None,
+    ghost_group: pg.sprite.Group,
+    spawn_points: list[MazeCoord],
+    path_dispatcher: PathDispatcher = None,
     ) -> None:
     """
     Set up the ghosts in the maze level.
