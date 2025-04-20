@@ -283,7 +283,6 @@ class PathDispatcher:
         self,
         maze_layout: MazeLayout,
         player: pg.sprite.Sprite,
-        pathfinder: Pathfinder = None, # existing only for backward compatibility
     ):
         # XXX: Use proper locking mechanism if you need to modify the graph
         self.maze_layout = maze_layout
@@ -480,7 +479,7 @@ class PathDispatcher:
             raise ValueError(
                 "How a not-moving reporting listener can be in conflict with a moving one?"
                 )
-        reportee_edge = conflicting_listener.path[:2]
+        # reportee_edge = conflicting_listener.path[:2]
 
         blocking_edges = { tuple(reporter_edge) }
         # if len(reportee_edge) == 2 \

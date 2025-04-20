@@ -8,7 +8,7 @@ Constants:
     NUMBER_OF_GHOSTS (int): Số lượng ma trong cấp độ (luôn là 1).
     INITIAL_SPEED_MULTIPLIER (int): Hệ số tốc độ ban đầu của ma đỏ.
     BASE_SPEED (int): Tốc độ cơ bản của ma tính bằng pixels/giây.
-    ARBITARY_SCREEN_SIZES (tuple[int, int]): Kích thước màn hình cho bố cục mê cung.
+    SCREEN_SIZES (tuple[int, int]): Kích thước màn hình cho bố cục mê cung.
     LEVEL (int): Số cấp độ, được sử dụng để tải file bố cục mê cung tương ứng.
 
 Notes:
@@ -28,8 +28,8 @@ from src.maze import (
     MazeCoord,
     MazeLevel, set_up_level, render_maze_level
 )
-from src.pathfinding import PathDispatcher, a_star_pathfinder
-from src.constant import TILE_SIZE
+from src.pathfinding import PathDispatcher, a_star_pathfinder, Pathfinder
+from src.constant import TILE_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH
 from src.ghost import Ghost
 from src.player import Player
 from src.ui.game_over import show_game_over_screen
@@ -38,11 +38,13 @@ NUMBER_OF_GHOSTS = 1
 INITIAL_SPEED_MULTIPLIER = 4  # Hệ số tốc độ ban đầu của ma
 BASE_SPEED = TILE_SIZE * INITIAL_SPEED_MULTIPLIER  # Tốc độ cơ bản tính bằng pixels/giây
 MIN_GHOST_SPAWN_DISTANCE = 5 * TILE_SIZE
-ARBITARY_SCREEN_SIZES = (800, 600)  # Kích thước màn hình tùy ý cho bố cục mê cung
-LEVEL = 1  # Tạo file "level_.txt" của riêng bạn trong thư mục "assets/levels"
+SCREEN_SIZES = (SCREEN_WIDTH, SCREEN_HEIGHT)
+LEVEL = 1
 
 def check_collision(ghost, pacman):
-    # Dùng hàm va chạm có sẵn của Pygame để kiểm tra va chạm giữa ma và Pacman
+    """
+    Dùng hàm va chạm có sẵn của Pygame để kiểm tra va chạm giữa ma và Pacman
+    """
     distance = calculate_distance(ghost.rect.center, pacman.rect.center)
     return distance < (TILE_SIZE * 0.6)  # Adjust threshold as needed
 
@@ -60,7 +62,7 @@ def run_level():
     # pylint: disable=no-member
     pg.init()
     # pylint: enable=no-member
-    screen_sizes = ARBITARY_SCREEN_SIZES
+    screen_sizes = SCREEN_SIZES
     screen = pg.display.set_mode(screen_sizes)
     pg.display.set_caption(f"Blinky - Level {LEVEL}")
     clock = pg.time.Clock()
@@ -86,12 +88,12 @@ def run_level():
         path_dispatcher = PathDispatcher(
             maze_layout=maze_level.maze_layout,
             player=pacman,
-            pathfinder=a_star_pathfinder, # replace with your own pathfinding algorithm
         )
         blinky = set_up_blinky(   #thay bằng tên ghost trong level
             ghost_group=maze_level.ghosts,
             spawn_points=maze_level.spawn_points,
             path_dispatcher=path_dispatcher,
+            path_finder=a_star_pathfinder,
             pacman_spawn=pacman_spawn
         )
         return maze_level
@@ -117,7 +119,7 @@ def run_level():
             if choice =="replay":
                 maze_level = initialize_level()
                 continue
-            elif choice == "exit":
+            if choice == "exit":
                 sys.exit()
         # Làm mới màn hình
         screen.fill((0, 0, 0))
@@ -139,6 +141,7 @@ def run_level():
 def set_up_blinky(
         ghost_group: pg.sprite.Group,
         spawn_points: list[MazeCoord],
+        path_finder: Pathfinder,
         path_dispatcher: PathDispatcher = None,
         pacman_spawn: MazeCoord = None,
     ) -> None:
@@ -147,7 +150,7 @@ def set_up_blinky(
     """
     # Lọc các điểm spawn cách xa Pacman
     valid_spawn_points = []
-    
+
     if pacman_spawn:
         pacman_center = pacman_spawn.rect.center
         # Lọc các điểm ở xa Pacman
@@ -156,19 +159,19 @@ def set_up_blinky(
                 distance = calculate_distance(point.rect.center, pacman_center)
                 if distance >= MIN_GHOST_SPAWN_DISTANCE:
                     valid_spawn_points.append(point)
-    
+
     # Nếu không có điểm hợp lệ, chọn từ tất cả các điểm (trừ điểm của Pacman)
     if not valid_spawn_points:
         valid_spawn_points = [p for p in spawn_points if p != pacman_spawn]
         print("Cảnh báo: Không tìm thấy điểm spawn đủ xa cho Clyde!")
-    
+
     # Nếu vẫn không có điểm nào, dùng tất cả các điểm
     if not valid_spawn_points:
         valid_spawn_points = spawn_points
         print("Cảnh báo: Buộc phải dùng tất cả các điểm spawn!")
     # Chọn điểm xuất hiện ngẫu nhiên cho Blinky
     spawn_point = random.choice(valid_spawn_points)
-    
+
     # Tạo ma đỏ (Blinky) - luôn sử dụng ghost_type="blinky" cho ma đỏ
     blinky = Ghost(
         initial_position=spawn_point,
@@ -176,11 +179,12 @@ def set_up_blinky(
         ghost_type="blinky",  # Chỉ định loại ma là Blinky (ma đỏ)
         ghost_group=ghost_group,
         path_dispatcher=path_dispatcher,
+        path_finder=path_finder,
     )
-    
+
     # In thông tin về ma đỏ
     print(f"Blinky (Red Ghost) spawned at position: {spawn_point.rect.center}")
-    
+
     if pacman_spawn:
         distance = calculate_distance(spawn_point.rect.center, pacman_spawn.rect.center)
         print(f"Distance between Pacman and Blinky: {distance/TILE_SIZE:.2f} tiles")

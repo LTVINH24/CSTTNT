@@ -4,22 +4,24 @@ This module implements the Breadth-First Search (BFS) algorithm for the blue gho
 
 from collections import deque
 from src.maze import MazeNode
-from src.maze import MazeDirection
 from .pathfinder import Pathfinder, PathfindingResult
 from .pathfinding_monitor import pathfinding_monitor
 
 @pathfinding_monitor
 def breadth_first_search_path_finder(
-    maze_graph: list[MazeNode],
+    _maze_graph: list[MazeNode],
     start_location: tuple[MazeNode, MazeNode | None],
     target_location: tuple[MazeNode, MazeNode | None],
 ) -> PathfindingResult:
     """
-    Finds a path in a maze graph from a start location to a target location using Breadth-First Search.
+    Finds a path in a maze graph from a start location to a target location
+    using Breadth-First Search.
 
-    BFS explores all neighbors at the present depth before moving on to nodes at the next depth level. 
-    It uses a queue to keep track of nodes to be explored, and visits the earliest discovered node first.
-    
+    BFS explores all neighbors at the present depth before moving on
+    to nodes at the next depth level.
+    It uses a queue to keep track of nodes to be explored,
+    and visits the earliest discovered node first.
+
     Args:
         maze_graph (list[MazeNode]):
             The graph representation of the maze, where each node represents a position in the maze.
@@ -31,7 +33,7 @@ def breadth_first_search_path_finder(
             If this is a tuple of two nodes, it means that the object is currently moving
             from the first node to the second node. In this case, **both nodes should be included
             at the start of the returning path at any order**.
-          
+
         target_location (tuple[MazeNode, MazeNode | None]):
             Similar to **start_location**, but for the goal location.
 
@@ -50,7 +52,7 @@ def breadth_first_search_path_finder(
         start_path = [start_location[0]]
     else:
         starting_node = start_location[0]
-    
+
     target_node = target_location[0]
     target_second_node = None
     if target_location[1] is not None:
@@ -58,7 +60,7 @@ def breadth_first_search_path_finder(
 
     queue = deque([(starting_node, start_path)])
     visited = set()
-    
+
 
     while queue:
         current_node, path = queue.popleft()
@@ -67,17 +69,17 @@ def breadth_first_search_path_finder(
             if target_second_node is not None and target_second_node not in final_path:
                 final_path.append(target_second_node)
             return PathfindingResult(final_path, expanded_nodes)
-        
+
         if current_node == target_second_node:
             final_path = path + [current_node]
             if target_node is not None and target_node not in final_path:
                 final_path.append(target_node)
             return PathfindingResult(final_path, expanded_nodes)
-        
+
         if current_node not in visited:
             visited.add(current_node)
             expanded_nodes.append(current_node)
-            
+
             for neighbor, _ in current_node.neighbors.values():
                 if neighbor not in visited:
                     queue.append((neighbor, path + [current_node]))

@@ -64,7 +64,6 @@ def run_level():
     path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=random_walk_path_finder,
     )
 
     set_up_ghosts(
@@ -125,6 +124,7 @@ def set_up_ghosts(
             ghost_type=ghost_type,
             ghost_group=ghost_group,
             path_dispatcher=path_dispatcher,
+            path_finder=random_walk_path_finder, # TODO: replace with your own pathfinding algorithm
         )
 
 def update_ghost_speed(

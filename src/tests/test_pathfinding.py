@@ -164,7 +164,6 @@ def run_visual_test(
     path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=pathfinder
     )
 
     # Chọn loại ghost dựa vào tên thuật toán
