@@ -20,6 +20,9 @@
   cd CSTTNT
   ```
 
+```bash
+cd Source
+```
 2. **Create a virtual environment:**
 
 ```bash
