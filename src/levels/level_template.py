@@ -73,7 +73,6 @@ def run_level():
     path_dispatcher = PathDispatcher(
         maze_layout=maze_level.maze_layout,
         player=pacman,
-        pathfinder=random_walk_path_finder,
     )
 
     set_up_ghosts(
